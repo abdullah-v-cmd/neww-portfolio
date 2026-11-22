@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { MessageSquare, X, Send, Copy, Check, Trash2, ArrowUpRight, Mail } from 'lucide-react';
 import { ProfileMode } from '../types/portfolio';
+import { parseJsonSafe } from '../utils/safeFetch';
 
 interface Citation {
   source_type: string;
@@ -297,62 +298,148 @@ export function AbdullahAIChat({
     setIsStreaming(true);
 
     try {
+      const requestPayload = {
+        message: trimmed,
+        sessionId: sessionId || undefined,
+        profileMode,
+        stream: true,
+      };
+
       const res = await fetch('/api/public/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: trimmed,
-          sessionId: sessionId || undefined,
-          profileMode,
-          stream: true,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream, application/json',
+        },
+        body: JSON.stringify(requestPayload),
       });
 
+      const contentType = (res.headers.get('content-type') || '').toLowerCase();
+
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: 'AI service unavailable.' }));
-        throw new Error(errData.error || `HTTP ${res.status}`);
+        const errData = await parseJsonSafe<{ error?: string }>(res);
+        throw new Error(errData?.error || `AI service error (HTTP ${res.status}).`);
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Streaming unavailable.');
+      // If reverse proxy returned HTML or unexpected non-stream response, fall back cleanly once to non-streaming JSON
+      if (contentType.includes('text/html') || contentType.includes('application/json') || !res.body) {
+        if (contentType.includes('application/json')) {
+          const data = await parseJsonSafe<{
+            sessionId?: string;
+            answer?: string;
+            citations?: Citation[];
+            providerUsed?: string;
+            error?: string;
+          }>(res);
+          if (data.error) throw new Error(data.error);
+          if (data.sessionId) setSessionId(data.sessionId);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    content: data.answer || '',
+                    citations: data.citations || [],
+                    providerUsed: data.providerUsed || '',
+                  }
+                : m
+            )
+          );
+          return;
+        }
 
+        // Retry non-streaming JSON once if HTML / missing body occurred on SSE
+        const fallbackRes = await fetch('/api/public/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ ...requestPayload, stream: false }),
+        });
+        const fallbackData = await parseJsonSafe<{
+          sessionId?: string;
+          answer?: string;
+          citations?: Citation[];
+          providerUsed?: string;
+          error?: string;
+        }>(fallbackRes);
+        if (!fallbackRes.ok || fallbackData.error) {
+          throw new Error(fallbackData.error || `AI service error (HTTP ${fallbackRes.status}).`);
+        }
+        if (fallbackData.sessionId) setSessionId(fallbackData.sessionId);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: fallbackData.answer || '',
+                  citations: fallbackData.citations || [],
+                  providerUsed: fallbackData.providerUsed || '',
+                }
+              : m
+          )
+        );
+        return;
+      }
+
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+
+      const processLine = (rawLine: string) => {
+        const line = rawLine.trim();
+        if (!line || line.startsWith(':')) return; // Ignore empty lines & SSE ': ping' keepalives
+        if (line.startsWith('<!doctype') || line.startsWith('<!DOCTYPE') || line.startsWith('<html')) {
+          throw new Error('The AI gateway returned an HTML page instead of an event stream. Please try again.');
+        }
+        if (!line.startsWith('data:')) return;
+        const jsonStr = line.slice(5).trim();
+        if (!jsonStr || jsonStr === '[DONE]') return;
+        if (jsonStr.startsWith('<')) {
+          throw new Error('Received invalid HTML fragment in AI response stream.');
+        }
+
+        let payload: any;
+        try {
+          payload = JSON.parse(jsonStr);
+        } catch {
+          return;
+        }
+
+        if (payload.type === 'chunk' && typeof payload.text === 'string') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + payload.text } : m
+            )
+          );
+        } else if (payload.type === 'done') {
+          if (payload.sessionId) setSessionId(payload.sessionId);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    citations: payload.citations || [],
+                    providerUsed: payload.providerUsed || '',
+                  }
+                : m
+            )
+          );
+        } else if (payload.type === 'error') {
+          throw new Error(payload.error || 'Provider returned an error.');
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
+        const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || '';
-
-        for (const chunk of lines) {
-          const dataLine = chunk.replace(/^data:\s*/, '').trim();
-          if (!dataLine) continue;
-          const payload = JSON.parse(dataLine);
-          if (payload.type === 'chunk') {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + payload.text } : m
-              )
-            );
-          } else if (payload.type === 'done') {
-            if (payload.sessionId) setSessionId(payload.sessionId);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      citations: payload.citations || [],
-                      providerUsed: payload.providerUsed || '',
-                    }
-                  : m
-              )
-            );
-          } else if (payload.type === 'error') {
-            throw new Error(payload.error || 'Provider returned an error.');
-          }
+        for (const line of lines) {
+          processLine(line);
         }
+      }
+      if (buffer.trim()) {
+        processLine(buffer);
       }
     } catch (err: any) {
       const msg = err?.message || 'Unable to reach Abdullah AI right now.';
@@ -363,7 +450,7 @@ export function AbdullahAIChat({
             ? {
                 ...m,
                 content:
-                  'Abdullah AI could not complete that request right now. Please verify the AI provider configuration or contact Abdullah directly below.',
+                  'Abdullah AI could not complete that request right now. Please check the error notice below or contact Abdullah directly.',
               }
             : m
         )

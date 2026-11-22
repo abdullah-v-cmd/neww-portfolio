@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { RefreshCw, Send, Plus, Trash2, CheckCircle2, Play, Upload, FlaskConical } from 'lucide-react';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminAiSmtpTabsProps {
   mode: 'ai_providers' | 'ai_knowledge' | 'messages' | 'smtp';
@@ -26,7 +27,7 @@ export function AdminAiSmtpTabs({
 }: AdminAiSmtpTabsProps) {
   const [provName, setProvName] = useState('');
   const [provUrl, setProvUrl] = useState('https://api.groq.com/openai/v1');
-  const [provModel, setProvModel] = useState('llama-3.3-70b-versatile');
+  const [provModel, setProvModel] = useState('openai/gpt-oss-120b');
   const [provKey, setProvKey] = useState('');
   const [testingProvId, setTestingProvId] = useState<number | null>(null);
 
@@ -80,7 +81,7 @@ export function AdminAiSmtpTabs({
           api_key: provKey,
         }),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) return notify(data.error || 'Failed to add provider.');
       setProvName('');
       setProvKey('');
@@ -99,14 +100,19 @@ export function AdminAiSmtpTabs({
 
     const handleTest = async (id: number) => {
       setTestingProvId(id);
-      const res = await fetch(`/api/admin/ai/providers/${id}/test`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setTestingProvId(null);
-      await onReload();
-      notify(data.ok ? `Success: ${data.message}` : `Error: ${data.message}`);
+      try {
+        const res = await fetch(`/api/admin/ai/providers/${id}/test`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await parseJsonSafe<any>(res);
+        await onReload();
+        notify(data.ok ? `Success: ${data.message}` : `Error: ${data.message}`);
+      } catch (err: any) {
+        notify(`Error: ${err?.message || 'Test request failed.'}`);
+      } finally {
+        setTestingProvId(null);
+      }
     };
 
     return (
@@ -203,37 +209,47 @@ export function AdminAiSmtpTabs({
 
   if (mode === 'ai_knowledge') {
     const handleSync = async () => {
-      const res = await fetch('/api/admin/ai/knowledge/sync', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      await onReload();
-      notify(`Knowledge base synced (${data.indexedCount} docs / ${data.chunkCount || 0} chunks).`);
+      try {
+        const res = await fetch('/api/admin/ai/knowledge/sync', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await parseJsonSafe<any>(res);
+        if (!res.ok) throw new Error(data.error || 'Sync failed.');
+        await onReload();
+        notify(`Knowledge base synced (${data.indexedCount} docs / ${data.chunkCount || 0} chunks).`);
+      } catch (err: any) {
+        notify(err?.message || 'Knowledge sync failed.');
+      }
     };
 
     const handleAddDoc = async (e: FormEvent) => {
       e.preventDefault();
       if (kbFile) {
         setUploadingKb(true);
-        const fd = new FormData();
-        fd.append('file', kbFile);
-        fd.append('title', kbTitle || kbFile.name);
-        fd.append('content', kbContent);
-        fd.append('scope', kbScope);
-        const res = await fetch('/api/admin/ai/knowledge/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-        const data = await res.json();
-        setUploadingKb(false);
-        if (!res.ok) return notify(data.error || 'File upload failed.');
-        setKbTitle('');
-        setKbContent('');
-        setKbFile(null);
-        await onReload();
-        return notify(`Document extracted (${data.extractedChars} chars) & indexed to ${kbScope} scope.`);
+        try {
+          const fd = new FormData();
+          fd.append('file', kbFile);
+          fd.append('title', kbTitle || kbFile.name);
+          fd.append('content', kbContent);
+          fd.append('scope', kbScope);
+          const res = await fetch('/api/admin/ai/knowledge/upload', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          });
+          const data = await parseJsonSafe<any>(res);
+          if (!res.ok) return notify(data.error || 'File upload failed.');
+          setKbTitle('');
+          setKbContent('');
+          setKbFile(null);
+          await onReload();
+          return notify(`Document extracted (${data.extractedChars} chars) & indexed to ${kbScope} scope.`);
+        } catch (err: any) {
+          return notify(err?.message || 'File upload failed.');
+        } finally {
+          setUploadingKb(false);
+        }
       }
 
       const res = await fetch('/api/admin/ai/knowledge', {
@@ -251,12 +267,16 @@ export function AdminAiSmtpTabs({
 
     const handleTestQuery = async (e: FormEvent) => {
       e.preventDefault();
-      const res = await fetch('/api/admin/ai/knowledge/test-query', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ query: testQuery, includePrivate: false }),
-      });
-      setTestResult(await res.json());
+      try {
+        const res = await fetch('/api/admin/ai/knowledge/test-query', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ query: testQuery, includePrivate: false }),
+        });
+        setTestResult(await parseJsonSafe<any>(res));
+      } catch (err: any) {
+        setTestResult({ chunks: [], aiError: err?.message || 'Test query failed.' });
+      }
     };
 
     const handleRunQuickSuite = async () => {
@@ -268,17 +288,25 @@ export function AdminAiSmtpTabs({
       ];
       const out: any[] = [];
       for (const t of tests) {
-        const res = await fetch('/api/admin/ai/knowledge/test-query', {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ query: t.query, includePrivate: false }),
-        });
-        const d = await res.json();
-        out.push({
-          ...t,
-          chunksCount: d.chunks?.length || 0,
-          answerPreview: d.aiResult?.answer?.slice(0, 220) || d.aiError || 'No response',
-        });
+        try {
+          const res = await fetch('/api/admin/ai/knowledge/test-query', {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ query: t.query, includePrivate: false }),
+          });
+          const d = await parseJsonSafe<any>(res);
+          out.push({
+            ...t,
+            chunksCount: d.chunks?.length || 0,
+            answerPreview: d.aiResult?.answer?.slice(0, 220) || d.aiError || 'No response',
+          });
+        } catch (err: any) {
+          out.push({
+            ...t,
+            chunksCount: 0,
+            answerPreview: err?.message || 'Request failed.',
+          });
+        }
       }
       setSuiteResults(out);
       setRunningSuite(false);
@@ -460,7 +488,7 @@ export function AdminAiSmtpTabs({
         headers: authHeaders,
         body: JSON.stringify({ body: replyText, sendEmail: sendViaEmail }),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       setReplyText('');
       await onReload();
       notify(data.emailResult?.message || 'Reply saved.');
@@ -675,8 +703,8 @@ export function AdminAiSmtpTabs({
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
               });
-              const d = await res.json();
-              notify(d.message);
+              const d = await parseJsonSafe<any>(res);
+              notify(d.message || d.error || 'SMTP test completed.');
             }}
             className="rounded-lg border border-zinc-700 px-3.5 py-2 text-xs text-slate-200 hover:border-zinc-500"
           >
@@ -697,9 +725,9 @@ export function AdminAiSmtpTabs({
                 headers: authHeaders,
                 body: JSON.stringify({ to: testEmailTo }),
               });
-              const d = await res.json();
+              const d = await parseJsonSafe<any>(res);
               await onReload();
-              notify(d.message);
+              notify(d.message || d.error || 'SMTP test email finished.');
             }}
             className="rounded-lg border border-zinc-700 px-3.5 py-2 text-xs text-slate-200 hover:border-zinc-500"
           >

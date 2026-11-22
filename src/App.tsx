@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PortfolioPayload, ProfileMode, ProjectItem } from './types/portfolio';
 import { HeroCanvas3D } from './components/HeroCanvas3D';
+import { HeroPortrait3D } from './components/HeroPortrait3D';
 import { VideoBackgroundLayer } from './components/VideoBackgroundLayer';
 import { CinematicIntro } from './components/CinematicIntro';
 import { FullStorySection } from './components/FullStorySection';
@@ -26,6 +27,7 @@ import { AboutSection } from './components/AboutSection';
 import { ContactSection } from './components/ContactSection';
 import { AbdullahAIChat } from './components/AbdullahAIChat';
 import { AdminApp } from './components/AdminApp';
+import { parseJsonSafe } from './utils/safeFetch';
 
 const CONTINUE_EPISODES = [
   { id: 'story', episode: 'Episode 01', title: 'The Full Story', subtitle: 'Principal Dossier' },
@@ -74,13 +76,12 @@ export default function App() {
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [portraitFailed, setPortraitFailed] = useState(false);
 
   const fetchPortfolio = useCallback(async () => {
     try {
       const res = await fetch('/api/public/portfolio');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as PortfolioPayload;
+      const data = await parseJsonSafe<PortfolioPayload & { error?: string }>(res);
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setPortfolio(data);
       setLoadError('');
 
@@ -163,7 +164,7 @@ export default function App() {
   const handleResumeDownload = async () => {
     try {
       const res = await fetch('/api/public/resume/track', { method: 'POST' });
-      const data = await res.json();
+      const data = await parseJsonSafe<{ resume_url?: string; resume_filename?: string }>(res);
       if (data?.resume_url) {
         const a = document.createElement('a');
         a.href = data.resume_url;
@@ -493,6 +494,17 @@ export default function App() {
       {/* Hero Section with VideoBackgroundLayer + Ambient 3D Canvas */}
       <main id="top">
         <section className="relative overflow-hidden border-b border-zinc-900">
+          {profile.cover_url && (!theme?.bg_mode || theme.bg_mode === 'default') ? (
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
+              <img
+                src={profile.cover_url}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover opacity-20"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#060608]/80 via-[#060608]/75 to-[#060608]" />
+            </div>
+          ) : null}
           <VideoBackgroundLayer theme={theme} profileMode={profileMode} />
           <HeroCanvas3D
             enabled={Boolean(theme?.three_d_enabled)}
@@ -617,38 +629,19 @@ export default function App() {
                 </div>
               </motion.div>
 
-              {/* Right Column: Portrait */}
+              {/* Right Column: Interactive 3D Spatial Portrait */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.55, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 className="lg:col-span-5"
               >
-                <div className="relative h-[400px] overflow-hidden rounded-2xl border border-zinc-800/60 bg-[#060608] sm:h-[440px]">
-                  {profile.avatar_url && !portraitFailed ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={`${profile.full_name} — Artificial Intelligence Engineer`}
-                      referrerPolicy="no-referrer"
-                      onError={() => setPortraitFailed(true)}
-                      className="h-full w-full object-cover object-top opacity-90"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950">
-                      <span className="font-display text-6xl font-bold text-slate-700">AN</span>
-                    </div>
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#060608] via-[#060608]/25 to-transparent" />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#060608] via-black/20 to-transparent" />
-                  <div className="absolute bottom-5 left-6 right-6">
-                    <p className="font-display text-2xl font-bold tracking-wide text-white uppercase">
-                      {profile.full_name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-300">
-                      {profile.location} · Superior University (BSCS)
-                    </p>
-                  </div>
-                </div>
+                <HeroPortrait3D
+                  avatarUrl={profile.avatar_url}
+                  fullName={profile.full_name}
+                  subtitle={`${profile.location} · Superior University (BSCS)`}
+                  variant="hero"
+                />
               </motion.div>
             </div>
 

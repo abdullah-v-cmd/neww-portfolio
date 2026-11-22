@@ -12,6 +12,7 @@ import {
   Search,
 } from 'lucide-react';
 import { CvRequestItem, ResumeVersionItem } from '../../types/portfolio';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminCvRequestsTabProps {
   token: string;
@@ -147,7 +148,7 @@ export function AdminCvRequestsTab({
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       await onReload();
 
       if (!res.ok || !data.ok) {
@@ -183,7 +184,7 @@ export function AdminCvRequestsTab({
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Upload failed.');
       setRvName('');
       setRvDesc('');

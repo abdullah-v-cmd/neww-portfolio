@@ -404,6 +404,17 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
                 {quickViewProject.technologies.join(' · ')}
               </p>
               <div className="flex flex-wrap items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+                {quickViewProject.github_url ? (
+                  <a
+                    href={quickViewProject.github_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-3.5 py-2 text-xs font-medium text-white hover:border-zinc-500"
+                  >
+                    <Github className="h-3.5 w-3.5" />
+                    <span>GitHub Repo</span>
+                  </a>
+                ) : null}
                 {quickViewProject.live_url ? (
                   <a
                     href={quickViewProject.live_url}
@@ -412,7 +423,7 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
                     className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700/60 bg-emerald-950/30 px-3.5 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-900/40"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
-                    <span>Live Demo</span>
+                    <span>Live Public Link</span>
                   </a>
                 ) : null}
                 <button

@@ -24,6 +24,7 @@ import { AdminProjectsGithubTab } from './admin/AdminProjectsGithubTab';
 import { AdminAiSmtpTabs } from './admin/AdminAiSmtpTabs';
 import { AdminSecurityThemeTabs } from './admin/AdminSecurityThemeTabs';
 import { AdminCvRequestsTab } from './admin/AdminCvRequestsTab';
+import { parseJsonSafe } from '../utils/safeFetch';
 
 interface AdminAppProps {
   onExitAdmin: () => void;
@@ -96,7 +97,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
 
   useEffect(() => {
     fetch('/api/admin/auth/status')
-      .then((r) => r.json())
+      .then((r) => parseJsonSafe<{ needsBootstrap: boolean; hasEnvOverride: boolean }>(r))
       .then(setAuthStatus)
       .catch(() => setAuthStatus({ needsBootstrap: false, hasEnvOverride: false }));
   }, []);
@@ -104,7 +105,10 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
   const loadAdminData = useCallback(async () => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
-    const fetchJson = (url: string) => fetch(url, { headers }).then((r) => (r.ok ? r.json() : null));
+    const fetchJson = (url: string) =>
+      fetch(url, { headers })
+        .then((r) => (r.ok ? parseJsonSafe(r) : null))
+        .catch(() => null);
 
     const [
       ov,
@@ -300,14 +304,20 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
               syncingKb={syncingKb}
               onSyncKnowledge={async () => {
                 setSyncingKb(true);
-                const res = await fetch('/api/admin/ai/knowledge/sync', {
-                  method: 'POST',
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-                const d = await res.json();
-                setSyncingKb(false);
-                await loadAdminData();
-                notify(`Synced ${d.indexedCount} knowledge documents (${d.chunkCount || 0} chunks).`);
+                try {
+                  const res = await fetch('/api/admin/ai/knowledge/sync', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  const d = await parseJsonSafe<any>(res);
+                  if (!res.ok) throw new Error(d.error || 'Sync failed.');
+                  await loadAdminData();
+                  notify(`Synced ${d.indexedCount} knowledge documents (${d.chunkCount || 0} chunks).`);
+                } catch (err: any) {
+                  notify(err?.message || 'Knowledge sync failed.');
+                } finally {
+                  setSyncingKb(false);
+                }
               }}
             />
           ) : null}
@@ -372,6 +382,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
             <AdminSecurityThemeTabs
               mode={activeTab}
               token={token}
+              adminEmail={user?.email || ''}
               theme={theme}
               sessions={sessions}
               auditLogs={auditLogs}

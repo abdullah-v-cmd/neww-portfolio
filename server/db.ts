@@ -1188,14 +1188,15 @@ function seedInitialData(): void {
         is_active, is_fallback, max_tokens, rate_limit_rpm, last_status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const hasGroqSeedKey = Boolean(getGroqEnvKey());
     insertProvider.run(
       'Google Gemini (Server Runtime)',
       'gemini',
       'https://generativelanguage.googleapis.com',
       'gemini-4-hydrogen',
       'gemini-embedding-2',
-      1,
-      0,
+      hasGroqSeedKey ? 0 : 1,
+      hasGroqSeedKey ? 1 : 0,
       1024,
       30,
       process.env.GEMINI_API_KEY ? 'configured' : 'awaiting_env_key'
@@ -1204,13 +1205,13 @@ function seedInitialData(): void {
       'Groq Llama 3 (OpenAI-Compatible)',
       'openai_compatible',
       'https://api.groq.com/openai/v1',
-      'llama-3.3-70b-versatile',
+      'openai/gpt-oss-120b',
       'local-semantic-v1',
-      0,
-      1,
+      hasGroqSeedKey ? 1 : 0,
+      hasGroqSeedKey ? 0 : 1,
       1024,
       30,
-      getGroqEnvKey() ? 'configured' : 'awaiting_api_key'
+      hasGroqSeedKey ? 'configured' : 'awaiting_api_key'
     );
   })();
 }
@@ -1298,21 +1299,26 @@ function runPostSeedMigrations(): void {
   const groqKey = getGroqEnvKey();
   if (groqKey) {
     const groqProv = db
-      .prepare(`SELECT id, api_key_enc, last_status FROM ai_providers WHERE base_url LIKE '%groq.com%' LIMIT 1`)
-      .get() as { id: number; api_key_enc: string; last_status: string } | undefined;
+      .prepare(`SELECT id, api_key_enc, last_status, is_active FROM ai_providers WHERE base_url LIKE '%groq.com%' LIMIT 1`)
+      .get() as { id: number; api_key_enc: string; last_status: string; is_active: number } | undefined;
     if (groqProv) {
       if (groqProv.last_status === 'awaiting_api_key') {
         db.prepare(`UPDATE ai_providers SET last_status = 'configured', updated_at = datetime('now') WHERE id = ?`).run(groqProv.id);
       }
-      // If Gemini has no env or custom key, auto-activate Groq so Abdullah AI works immediately
+      // Prefer configured Groq secret when Gemini has no key or is not healthy, keeping Gemini as fallback
       const geminiProv = db
-        .prepare(`SELECT id, api_key_enc, is_active FROM ai_providers WHERE provider_type = 'gemini' LIMIT 1`)
-        .get() as { id: number; api_key_enc: string; is_active: number } | undefined;
+        .prepare(`SELECT id, api_key_enc, is_active, last_status FROM ai_providers WHERE provider_type = 'gemini' LIMIT 1`)
+        .get() as { id: number; api_key_enc: string; is_active: number; last_status: string } | undefined;
+      const anyOtherActive = db
+        .prepare(`SELECT id FROM ai_providers WHERE is_active = 1 AND provider_type != 'gemini' LIMIT 1`)
+        .get();
       const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim() || geminiProv?.api_key_enc);
-      if (!hasGeminiKey) {
+      if (!anyOtherActive && (!hasGeminiKey || (geminiProv?.is_active === 1 && geminiProv?.last_status !== 'healthy'))) {
         db.transaction(() => {
-          db.prepare(`UPDATE ai_providers SET is_active = 0, is_fallback = 1 WHERE provider_type = 'gemini'`).run();
-          db.prepare(`UPDATE ai_providers SET is_active = 1, is_fallback = 0, last_status = 'configured' WHERE id = ?`).run(groqProv.id);
+          db.prepare(`UPDATE ai_providers SET is_active = 0, is_fallback = 1, updated_at = datetime('now') WHERE provider_type = 'gemini'`).run();
+          db.prepare(
+            `UPDATE ai_providers SET is_active = 1, is_fallback = 0, last_status = CASE WHEN last_status = 'healthy' THEN 'healthy' ELSE 'configured' END, updated_at = datetime('now') WHERE id = ?`
+          ).run(groqProv.id);
         })();
       }
     }

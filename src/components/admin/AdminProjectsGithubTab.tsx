@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
-import { RefreshCw, Plus, Check, EyeOff, Star, Globe, Trash2, Edit3, RotateCcw, X } from 'lucide-react';
+import { RefreshCw, Plus, Check, EyeOff, Star, Globe, Trash2, Edit3, RotateCcw, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminProjectsGithubTabProps {
   mode: 'projects' | 'github';
@@ -30,6 +31,8 @@ export function AdminProjectsGithubTab({
   const [githubUrl, setGithubUrl] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [techs, setTechs] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+  const [uploadingProjImg, setUploadingProjImg] = useState(false);
 
   // Full Edit Modal
   const [editingProj, setEditingProj] = useState<any>(null);
@@ -37,6 +40,31 @@ export function AdminProjectsGithubTab({
   const authHeaders = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
+  };
+
+  const handleUploadProjectImage = async (file: File, target: 'create' | 'edit') => {
+    setUploadingProjImg(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/projects/upload-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await parseJsonSafe<any>(res);
+      if (!res.ok) throw new Error(data.error || 'Image upload failed.');
+      if (target === 'create') {
+        setCoverImage(data.url);
+      } else {
+        setEditingProj((prev: any) => (prev ? { ...prev, cover_image: data.url } : prev));
+      }
+      notify('Project image uploaded.');
+    } catch (err: any) {
+      notify(err?.message || 'Project image upload failed.');
+    } finally {
+      setUploadingProjImg(false);
+    }
   };
 
   const handleCreateProject = async (e: FormEvent) => {
@@ -50,6 +78,7 @@ export function AdminProjectsGithubTab({
         status,
         tagline,
         overview,
+        cover_image: coverImage,
         github_url: githubUrl,
         live_url: liveUrl,
         live_demo_verified: Boolean(liveUrl),
@@ -62,6 +91,7 @@ export function AdminProjectsGithubTab({
       setTitle('');
       setTagline('');
       setOverview('');
+      setCoverImage('');
       setGithubUrl('');
       setLiveUrl('');
       setTechs('');
@@ -152,7 +182,7 @@ export function AdminProjectsGithubTab({
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Sync failed');
       await onReload();
       notify(`Synced ${data.synced} public repositories from abdullah-v-cmd.`);
@@ -333,6 +363,42 @@ export function AdminProjectsGithubTab({
             className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
           />
         </div>
+        <div className="grid grid-cols-1 items-center gap-3 rounded-lg border border-zinc-800 bg-[#07080B] p-3 sm:grid-cols-12">
+          <div className="sm:col-span-2">
+            {coverImage ? (
+              <img
+                src={coverImage}
+                alt="Project preview"
+                className="h-14 w-full rounded object-cover border border-zinc-800"
+              />
+            ) : (
+              <div className="flex h-14 w-full items-center justify-center rounded border border-dashed border-zinc-800 text-slate-600">
+                <ImageIcon className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+          <div className="sm:col-span-7">
+            <input
+              type="text"
+              placeholder="Project Cover Image URL (or upload on the right)"
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-700 bg-[#0D0F14] px-3 text-xs font-medium text-slate-200 hover:border-zinc-500">
+              <Upload className="h-3.5 w-3.5" />
+              <span>{uploadingProjImg ? 'Uploading…' : 'Upload Image'}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                onChange={(e) => e.target.files?.[0] && handleUploadProjectImage(e.target.files[0], 'create')}
+              />
+            </label>
+          </div>
+        </div>
         <textarea
           rows={2}
           required
@@ -378,8 +444,19 @@ export function AdminProjectsGithubTab({
             {displayedProjects.map((p) => (
               <tr key={p.id} className="hover:bg-zinc-900/40">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-white">{p.title}</p>
-                  <p className="text-[11px] text-slate-500">{p.category}</p>
+                  <div className="flex items-center gap-3">
+                    {p.cover_image ? (
+                      <img
+                        src={p.cover_image}
+                        alt=""
+                        className="h-9 w-14 shrink-0 rounded object-cover border border-zinc-800"
+                      />
+                    ) : null}
+                    <div>
+                      <p className="font-medium text-white">{p.title}</p>
+                      <p className="text-[11px] text-slate-500">{p.category}</p>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 font-mono text-slate-300">{p.status || 'Completed'}</td>
                 <td className="px-4 py-3">
@@ -498,13 +575,43 @@ export function AdminProjectsGithubTab({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-400">Live Demo URL</label>
+                <label className="mb-1 block text-xs text-slate-400">Live Public Link (optional)</label>
                 <input
                   type="url"
                   value={editingProj.live_url || ''}
                   onChange={(e) => setEditingProj({ ...editingProj, live_url: e.target.value })}
                   className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-3">
+              <label className="block text-xs text-slate-400">Project Cover Image</label>
+              <div className="flex flex-wrap items-center gap-3">
+                {editingProj.cover_image ? (
+                  <img
+                    src={editingProj.cover_image}
+                    alt="Project cover"
+                    className="h-14 w-24 shrink-0 rounded object-cover border border-zinc-800"
+                  />
+                ) : null}
+                <input
+                  type="text"
+                  value={editingProj.cover_image || ''}
+                  onChange={(e) => setEditingProj({ ...editingProj, cover_image: e.target.value })}
+                  placeholder="/uploads/public/proj_...jpg"
+                  className="h-9 min-w-[200px] flex-1 rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+                />
+                <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 bg-[#0D0F14] px-3 text-xs font-medium text-slate-200 hover:border-zinc-500">
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>{uploadingProjImg ? 'Uploading…' : 'Upload Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={(e) => e.target.files?.[0] && handleUploadProjectImage(e.target.files[0], 'edit')}
+                  />
+                </label>
               </div>
             </div>
 

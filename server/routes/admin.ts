@@ -252,6 +252,12 @@ adminRouter.post('/auth/change-email', (req: AuthedRequest, res) => {
     return res.status(401).json({ error: 'Password verification failed.' });
   }
   const normalized = newEmail.trim().toLowerCase();
+  const existing = db
+    .prepare('SELECT id FROM admin_users WHERE lower(email) = ? AND id != ?')
+    .get(normalized, req.adminUser!.id);
+  if (existing) {
+    return res.status(409).json({ error: 'That email address is already in use.' });
+  }
   db.prepare(`UPDATE admin_users SET email = ?, updated_at = datetime('now') WHERE id = ?`).run(
     normalized,
     req.adminUser!.id
@@ -393,8 +399,27 @@ adminRouter.put('/profile', (req: AuthedRequest, res) => {
     String(b.avatar_url || ''),
     String(b.cover_url || '')
   );
+  rebuildPublicKnowledgeBase();
   logAudit(req.adminUser!.email, 'UPDATE_PROFILE', 'profile', '1', 'Updated profile/about', req.ip || '');
   res.json(db.prepare('SELECT * FROM profile_settings WHERE id = 1').get());
+});
+
+adminRouter.post('/profile/upload-image', adminUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Image file required (PNG, JPG, WEBP).' });
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(req.file.mimetype)) {
+    return res.status(400).json({ error: 'Unsupported image format. Allowed: PNG, JPG, WEBP.' });
+  }
+  if (!validateFileMagicBytes(req.file.buffer, req.file.mimetype)) {
+    return res.status(400).json({ error: 'Uploaded image file signature failed validation.' });
+  }
+  const extMap: Record<string, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' };
+  const kind = req.body?.kind === 'cover' ? 'cover' : 'avatar';
+  const storedName = `${kind}_${Date.now()}_${generateSecureToken(4)}${extMap[req.file.mimetype] || '.jpg'}`;
+  const targetPath = path.resolve(PUBLIC_UPLOADS_DIR, storedName);
+  fs.writeFileSync(targetPath, req.file.buffer);
+  const url = `/uploads/public/${storedName}`;
+  logAudit(req.adminUser!.email, 'UPLOAD_PROFILE_IMAGE', 'profile', kind, storedName, req.ip || '');
+  res.json({ url });
 });
 
 adminRouter.post('/resume/upload', adminUpload.single('file'), (req: AuthedRequest, res) => {
@@ -697,7 +722,7 @@ adminRouter.post('/cv-requests/:id/send-cv', adminUpload.single('file'), async (
   );
 
   if (!smtpResult.ok) {
-    return res.status(502).json({
+    return res.status(503).json({
       ok: false,
       deliveryStatus: 'Failed',
       error: smtpResult.message,
@@ -1014,6 +1039,23 @@ adminRouter.get('/projects', (_req, res) => {
   );
 });
 
+adminRouter.post('/projects/upload-image', adminUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Project image file required (PNG, JPG, WEBP).' });
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(req.file.mimetype)) {
+    return res.status(400).json({ error: 'Unsupported image format. Allowed: PNG, JPG, WEBP.' });
+  }
+  if (!validateFileMagicBytes(req.file.buffer, req.file.mimetype)) {
+    return res.status(400).json({ error: 'Uploaded project image signature failed validation.' });
+  }
+  const extMap: Record<string, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' };
+  const storedName = `proj_${Date.now()}_${generateSecureToken(4)}${extMap[req.file.mimetype] || '.jpg'}`;
+  const targetPath = path.resolve(PUBLIC_UPLOADS_DIR, storedName);
+  fs.writeFileSync(targetPath, req.file.buffer);
+  const url = `/uploads/public/${storedName}`;
+  logAudit(req.adminUser!.email, 'UPLOAD_PROJECT_IMAGE', 'project', storedName, req.file.originalname, req.ip || '');
+  res.json({ url });
+});
+
 adminRouter.post('/projects', (req: AuthedRequest, res) => {
   const b = req.body || {};
   const baseSlug = String(b.slug || b.title || 'project')
@@ -1142,9 +1184,17 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
       signal: AbortSignal.timeout(15000),
     });
     if (!ghRes.ok) {
-      return res.status(502).json({ error: `GitHub API returned HTTP ${ghRes.status}` });
+      return res.status(503).json({ error: `GitHub API returned HTTP ${ghRes.status}` });
     }
-    const repos = (await ghRes.json()) as any[];
+    const rawGh = await ghRes.text();
+    const trimmedGh = rawGh.trim();
+    if (!trimmedGh || trimmedGh.startsWith('<')) {
+      return res.status(503).json({ error: 'GitHub API returned a non-JSON HTML response. Please retry shortly.' });
+    }
+    const repos = JSON.parse(trimmedGh) as any[];
+    if (!Array.isArray(repos)) {
+      return res.status(503).json({ error: 'GitHub API returned an unexpected payload format.' });
+    }
     const upsert = db.prepare(`
       INSERT INTO github_repos (name, full_name, description, language, html_url, homepage, stars, forks, updated_at_gh, topics_json, approval_status, repo_status, synced_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'discovered', ?, datetime('now'))

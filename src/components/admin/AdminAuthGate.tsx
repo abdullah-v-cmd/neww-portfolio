@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Lock, ShieldCheck, ArrowLeft, KeyRound } from 'lucide-react';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminUser {
   id: number;
@@ -45,7 +46,7 @@ export function AdminAuthGate({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Authentication failed.');
 
       if (data.mfaRequired) {

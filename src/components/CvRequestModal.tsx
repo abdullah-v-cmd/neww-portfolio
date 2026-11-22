@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { X, FileCheck2, Send, CheckCircle2 } from 'lucide-react';
+import { parseJsonSafe } from '../utils/safeFetch';
 
 interface CvRequestModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ export function CvRequestModal({ isOpen, onClose }: CvRequestModalProps) {
           message: message.trim(),
         }),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) {
         throw new Error(data.error || 'Could not submit CV request.');
       }

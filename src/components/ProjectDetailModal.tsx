@@ -101,37 +101,54 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
         </div>
 
         <div className="space-y-8 p-6 sm:p-8">
-          {/* Action Links */}
-          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-800/80 pb-6">
-            {project.github_url ? (
-              <a
-                href={project.github_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
-              >
-                <Github className="h-4 w-4" />
-                <span>View Source on GitHub</span>
-              </a>
-            ) : null}
-            {project.live_url ? (
-              <a
-                href={project.live_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/60 bg-emerald-600/15 px-4 py-2 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-600/25 whitespace-nowrap shrink-0"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span>
-                  {project.live_demo_verified ? 'Open Verified Live Demo' : 'Open Live Deployment'}
+          {/* Brief Description & Direct Repository / Live Links */}
+          <div className="space-y-4 border-b border-zinc-800/80 pb-6">
+            <div>
+              <h3 className="text-xs font-semibold tracking-wider text-[#e50914] uppercase">
+                Brief Description
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-200">
+                {project.overview || project.tagline}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              {project.github_url ? (
+                <a
+                  href={project.github_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
+                >
+                  <Github className="h-4 w-4" />
+                  <span>
+                    GitHub Repository{project.github_repo_name ? ` (${project.github_repo_name})` : ''}
+                  </span>
+                </a>
+              ) : null}
+              {project.live_url ? (
+                <a
+                  href={project.live_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/60 bg-emerald-600/20 px-4 py-2 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-600/30 whitespace-nowrap shrink-0"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>
+                    {project.live_demo_verified ? 'Open Live Public Link (Verified)' : 'Open Live Public Link'}
+                  </span>
+                </a>
+              ) : (
+                <span className="font-mono text-xs text-slate-400">
+                  Live public link not hosted (source &amp; setup on GitHub)
                 </span>
-              </a>
-            ) : null}
-            {project.companion_group ? (
-              <span className="font-mono text-xs text-slate-400">
-                Series: {project.companion_group}
-              </span>
-            ) : null}
+              )}
+              {project.companion_group ? (
+                <span className="font-mono text-xs text-slate-400">
+                  Series: {project.companion_group}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {/* Honest Limitations / Scope Notice */}
@@ -145,12 +162,8 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
             </div>
           ) : null}
 
-          {/* Overview, Problem & Solution */}
+          {/* Problem & Solution */}
           <div className="space-y-6">
-            <div>
-              <h3 className="font-display text-lg font-semibold text-white">Overview</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{project.overview}</p>
-            </div>
 
             {project.problem_statement || project.solution_summary ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

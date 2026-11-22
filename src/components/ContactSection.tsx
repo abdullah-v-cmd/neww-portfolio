@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Mail, Github, Linkedin, Send, Paperclip, MessageSquare, Search, CheckCircle2, FileCheck2 } from 'lucide-react';
 import { ProfileSettings } from '../types/portfolio';
+import { parseJsonSafe } from '../utils/safeFetch';
 
 interface ContactSectionProps {
   profile: ProfileSettings;
@@ -48,11 +49,10 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
     setThreadError('');
     try {
       const res = await fetch(`/api/public/conversations/${encodeURIComponent(tokenToFetch.trim())}`);
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Thread not found.' }));
-        throw new Error(err.error || 'Unable to load conversation.');
+        throw new Error(data.error || 'Unable to load conversation.');
       }
-      const data = await res.json();
       setActiveThread(data);
     } catch (err: any) {
       setThreadError(err?.message || 'Thread not found.');
@@ -77,7 +77,7 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Failed to send message.');
 
       setCreatedThreadToken(data.threadToken);

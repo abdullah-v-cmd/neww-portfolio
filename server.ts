@@ -129,10 +129,22 @@ async function startServer() {
   app.use('/api/public', publicRouter);
   app.use('/api/admin', adminRouter);
 
+  // Explicit /api 404 JSON catch-all so unmatched /api/* requests NEVER fall through to Vite/SPA HTML
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'API endpoint not found.' });
+  });
+
   // Global API error handler
   app.use('/api', (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const status = err?.status || 400;
-    res.status(status).json({ error: err?.message || 'Request failed.' });
+    if (res.headersSent) {
+      return res.end();
+    }
+    const status = err?.status || (err?.type === 'entity.parse.failed' ? 400 : 400);
+    const message =
+      err?.type === 'entity.parse.failed'
+        ? 'Invalid JSON request payload.'
+        : err?.message || 'Request failed.';
+    return res.status(status).json({ error: message });
   });
 
   // Vite integration in development vs dist static serving in production

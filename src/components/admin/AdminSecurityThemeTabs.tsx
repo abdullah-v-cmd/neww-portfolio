@@ -1,9 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Save, Shield, Download, LogOut, Upload, Film } from 'lucide-react';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminSecurityThemeTabsProps {
   mode: 'theme' | 'security';
   token: string;
+  adminEmail: string;
   theme: any;
   sessions: any[];
   auditLogs: any[];
@@ -15,6 +17,7 @@ interface AdminSecurityThemeTabsProps {
 export function AdminSecurityThemeTabs({
   mode,
   token,
+  adminEmail,
   theme,
   sessions,
   auditLogs,
@@ -26,8 +29,14 @@ export function AdminSecurityThemeTabs({
   const [uploadingField, setUploadingField] = useState<string>('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState(adminEmail || '');
+  const [emailPassword, setEmailPassword] = useState('');
   const [mfaSetup, setMfaSetup] = useState<{ secret: string; qrDataUrl: string } | null>(null);
   const [mfaCode, setMfaCode] = useState('');
+
+  useEffect(() => {
+    if (adminEmail) setNewEmail(adminEmail);
+  }, [adminEmail]);
 
   useEffect(() => {
     if (theme) setThemeForm(theme);
@@ -48,7 +57,7 @@ export function AdminSecurityThemeTabs({
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Media upload failed');
       setThemeForm((prev: any) => ({ ...prev, [field]: data.url }));
       notify(`Uploaded ${field.replace('bg_', '').replace(/_/g, ' ')} successfully. Save Visual Settings to publish.`);
@@ -357,7 +366,7 @@ export function AdminSecurityThemeTabs({
       headers: authHeaders,
       body: JSON.stringify({ currentPassword, newPassword }),
     });
-    const d = await res.json();
+    const d = await parseJsonSafe<any>(res);
     if (!res.ok) return notify(d.error || 'Password change failed.');
     setCurrentPassword('');
     setNewPassword('');
@@ -365,12 +374,28 @@ export function AdminSecurityThemeTabs({
     notify('Password updated and other sessions invalidated.');
   };
 
+  const handleChangeEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/auth/change-email', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ newEmail, currentPassword: emailPassword }),
+    });
+    const d = await parseJsonSafe<any>(res);
+    if (!res.ok) return notify(d.error || 'Email update failed.');
+    setEmailPassword('');
+    await onReload();
+    notify(`Admin login email updated to ${d.email}.`);
+  };
+
   const handleStartMfa = async () => {
     const res = await fetch('/api/admin/auth/mfa/setup', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
-    setMfaSetup(await res.json());
+    const d = await parseJsonSafe<any>(res);
+    if (!res.ok) return notify(d.error || 'MFA setup failed.');
+    setMfaSetup(d);
   };
 
   const handleEnableMfa = async (e: FormEvent) => {
@@ -380,7 +405,7 @@ export function AdminSecurityThemeTabs({
       headers: authHeaders,
       body: JSON.stringify({ code: mfaCode }),
     });
-    const d = await res.json();
+    const d = await parseJsonSafe<any>(res);
     if (!res.ok) return notify(d.error || 'Invalid MFA code.');
     setMfaSetup(null);
     setMfaCode('');
@@ -411,7 +436,7 @@ export function AdminSecurityThemeTabs({
         headers: authHeaders,
         body: JSON.stringify(parsed),
       });
-      const data = await res.json();
+      const data = await parseJsonSafe<any>(res);
       if (!res.ok) throw new Error(data.error || 'Restore failed.');
       await onReload();
       notify('Profile & theme restored cleanly from backup JSON.');
@@ -447,6 +472,37 @@ export function AdminSecurityThemeTabs({
             className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
           >
             Update Password
+          </button>
+        </form>
+
+        <form onSubmit={handleChangeEmail} className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
+          <div>
+            <h3 className="font-display text-base font-semibold text-white">Change Admin Login Email</h3>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Current login: <span className="font-mono text-slate-200">{adminEmail || '—'}</span>
+            </p>
+          </div>
+          <input
+            type="email"
+            required
+            placeholder="New Admin Email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
+          />
+          <input
+            type="password"
+            required
+            placeholder="Verify Current Password"
+            value={emailPassword}
+            onChange={(e) => setEmailPassword(e.target.value)}
+            className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
+          >
+            Update Admin Email
           </button>
         </form>
 

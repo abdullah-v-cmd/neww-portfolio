@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Save, Upload, Plus, Trash2, CheckCircle2, Edit3, X } from 'lucide-react';
+import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminContentTabsProps {
   tab: 'profile' | 'experience' | 'skills' | 'certificates';
@@ -28,6 +29,7 @@ export function AdminContentTabs({
 }: AdminContentTabsProps) {
   const [profileForm, setProfileForm] = useState<any>(profile || {});
   const [saving, setSaving] = useState(false);
+  const [uploadingImageKind, setUploadingImageKind] = useState<'avatar' | 'cover' | ''>('');
 
   // Sync async props reliably into local state
   useEffect(() => {
@@ -113,13 +115,43 @@ export function AdminContentTabs({
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
     });
-    const data = await res.json();
+    const data = await parseJsonSafe<any>(res);
     if (res.ok) {
       setProfileForm((p: any) => ({ ...p, resume_url: data.resume_url, resume_filename: data.resume_filename }));
       await onReload();
       notify('Resume PDF uploaded and published.');
     } else {
       notify(data.error || 'Resume upload failed.');
+    }
+  };
+
+  const handleProfileImageUpload = async (kind: 'avatar' | 'cover', file: File) => {
+    setUploadingImageKind(kind);
+    try {
+      const fd = new FormData();
+      fd.append('kind', kind);
+      fd.append('file', file);
+      const res = await fetch('/api/admin/profile/upload-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await parseJsonSafe<any>(res);
+      if (!res.ok) throw new Error(data.error || 'Image upload failed.');
+      const field = kind === 'cover' ? 'cover_url' : 'avatar_url';
+      const nextProfile = { ...profileForm, [field]: data.url };
+      setProfileForm(nextProfile);
+      await fetch('/api/admin/profile', {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(nextProfile),
+      });
+      await onReload();
+      notify(kind === 'cover' ? 'Cover image updated and published.' : 'Profile portrait updated and published.');
+    } catch (err: any) {
+      notify(err?.message || 'Image upload failed.');
+    } finally {
+      setUploadingImageKind('');
     }
   };
 
@@ -277,7 +309,7 @@ export function AdminContentTabs({
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
     });
-    const data = await res.json();
+    const data = await parseJsonSafe<any>(res);
     if (res.ok) {
       setCertFileUrl(data.file_url);
       setCertFileType(data.file_type);
@@ -390,7 +422,7 @@ export function AdminContentTabs({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">What I Build</label>
+            <label className="mb-1 block text-xs text-slate-400">What I Build (About Me)</label>
             <textarea
               rows={3}
               value={profileForm.about_what_i_build || ''}
@@ -399,11 +431,20 @@ export function AdminContentTabs({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Problem-Solving Approach</label>
+            <label className="mb-1 block text-xs text-slate-400">Problem-Solving Approach (About Me)</label>
             <textarea
               rows={3}
               value={profileForm.about_problem_solving || ''}
               onChange={(e) => setProfileForm({ ...profileForm, about_problem_solving: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-sm text-white"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs text-slate-400">Career Goals (About Me)</label>
+            <textarea
+              rows={2}
+              value={profileForm.about_career_goals || ''}
+              onChange={(e) => setProfileForm({ ...profileForm, about_career_goals: e.target.value })}
               className="w-full rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-sm text-white"
             />
           </div>
@@ -424,6 +465,88 @@ export function AdminContentTabs({
               onChange={(e) => setProfileForm({ ...profileForm, linkedin_url: e.target.value })}
               className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
             />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs text-slate-400">GitHub URL</label>
+            <input
+              type="url"
+              value={profileForm.github_url || ''}
+              onChange={(e) => setProfileForm({ ...profileForm, github_url: e.target.value })}
+              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
+            />
+          </div>
+        </div>
+
+        {/* Portrait & Cover Image Upload Controls */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-3 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium text-white">3D Profile Portrait Image</p>
+                <p className="text-xs text-slate-400">Displayed in Hero 3D frame and About Me.</p>
+              </div>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-white hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{uploadingImageKind === 'avatar' ? 'Uploading…' : 'Change Portrait'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(e) => e.target.files?.[0] && handleProfileImageUpload('avatar', e.target.files[0])}
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              {profileForm.avatar_url ? (
+                <img
+                  src={profileForm.avatar_url}
+                  alt="Portrait preview"
+                  className="h-16 w-14 shrink-0 rounded-lg border border-zinc-800 object-cover object-top"
+                />
+              ) : null}
+              <input
+                type="text"
+                value={profileForm.avatar_url || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, avatar_url: e.target.value })}
+                placeholder="/uploads/public/avatar_...jpg"
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium text-white">Portfolio Cover Image</p>
+                <p className="text-xs text-slate-400">Displayed on Hero backdrop &amp; About Me banner.</p>
+              </div>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-white hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{uploadingImageKind === 'cover' ? 'Uploading…' : 'Change Cover'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(e) => e.target.files?.[0] && handleProfileImageUpload('cover', e.target.files[0])}
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              {profileForm.cover_url ? (
+                <img
+                  src={profileForm.cover_url}
+                  alt="Cover preview"
+                  className="h-16 w-24 shrink-0 rounded-lg border border-zinc-800 object-cover"
+                />
+              ) : null}
+              <input
+                type="text"
+                value={profileForm.cover_url || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, cover_url: e.target.value })}
+                placeholder="/uploads/public/cover_...jpg"
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+              />
+            </div>
           </div>
         </div>
 

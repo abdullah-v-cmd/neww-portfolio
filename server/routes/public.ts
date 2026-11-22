@@ -4,7 +4,7 @@ import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import { db, PRIVATE_UPLOADS_DIR } from '../db.ts';
-import { queryAbdullahAI } from '../ai.ts';
+import { queryAbdullahAI, queryAbdullahAIStream } from '../ai.ts';
 import { generateSecureToken, validateFileMagicBytes } from '../crypto.ts';
 import { notifyAdminOfCvRequest, notifyAdminOfRecruiterMessage } from '../mailer.ts';
 import { rateLimit } from '../auth.ts';
@@ -267,13 +267,50 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     message.trim()
   );
 
-  try {
-    const result = await queryAbdullahAI({
-      message: message.trim(),
-      history: historyRows,
-      profileMode: String(profileMode || 'explore'),
-      includePrivate: false,
+  let clientClosed = false;
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+
+  if (stream) {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+    req.on('close', () => {
+      clientClosed = true;
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
     });
+    heartbeat = setInterval(() => {
+      if (!clientClosed && !res.writableEnded) {
+        res.write(': ping\n\n');
+      }
+    }, 4000);
+  }
+
+  try {
+    const result = stream
+      ? await queryAbdullahAIStream(
+          {
+            message: message.trim(),
+            history: historyRows,
+            profileMode: String(profileMode || 'explore'),
+            includePrivate: false,
+          },
+          (tok) => {
+            if (!clientClosed && !res.writableEnded) {
+              res.write(`data: ${JSON.stringify({ type: 'chunk', text: tok })}\n\n`);
+            }
+          }
+        )
+      : await queryAbdullahAI({
+          message: message.trim(),
+          history: historyRows,
+          profileMode: String(profileMode || 'explore'),
+          includePrivate: false,
+        });
 
     db.prepare(
       'INSERT INTO ai_messages (conversation_id, role, content, citations_json, provider_used) VALUES (?, ?, ?, ?, ?)'
@@ -281,15 +318,13 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
 
     db.prepare(`UPDATE ai_conversations SET updated_at = datetime('now') WHERE id = ?`).run(conv.id);
 
-    if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
 
-      const tokens = result.answer.split(/(\s+)/);
-      for (const tok of tokens) {
-        res.write(`data: ${JSON.stringify({ type: 'chunk', text: tok })}\n\n`);
-      }
+    if (stream) {
+      if (clientClosed || res.writableEnded) return;
       res.write(
         `data: ${JSON.stringify({
           type: 'done',
@@ -308,13 +343,19 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
       providerUsed: result.providerUsed,
     });
   } catch (err: any) {
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
     const msg = err?.message || 'Unable to reach AI provider.';
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.write(`data: ${JSON.stringify({ type: 'error', error: msg })}\n\n`);
-      return res.end();
+      if (!clientClosed && !res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: msg })}\n\n`);
+        res.end();
+      }
+      return;
     }
-    return res.status(502).json({ error: msg });
+    return res.status(503).json({ error: msg });
   }
 });
 
