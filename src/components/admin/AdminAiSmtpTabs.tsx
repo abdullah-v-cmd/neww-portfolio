@@ -512,25 +512,43 @@ export function AdminAiSmtpTabs({
               No recruiter conversations yet.
             </div>
           ) : (
-            messages.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setSelectedConvId(c.id)}
-                className={`w-full rounded-xl border p-4 text-left transition-colors ${
-                  activeConv?.id === c.id
-                    ? 'border-red-600/60 bg-[#121620]'
-                    : 'border-zinc-800 bg-[#0D0F14] hover:border-zinc-700'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>{c.recruiter_name}</span>
-                  <span className="font-mono text-red-400">{c.status}</span>
-                </div>
-                <p className="mt-1 truncate text-sm font-semibold text-white">{c.subject}</p>
-                <p className="mt-0.5 truncate text-xs text-slate-400">{c.recruiter_email}</p>
-              </button>
-            ))
+            messages.map((c) => {
+              const isFromAi = c.company === 'Via Abdullah AI' || String(c.subject || '').startsWith('[Abdullah AI]');
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedConvId(c.id)}
+                  className={`w-full rounded-xl border p-4 text-left transition-colors ${
+                    activeConv?.id === c.id
+                      ? 'border-red-600/60 bg-[#121620]'
+                      : 'border-zinc-800 bg-[#0D0F14] hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                    <span className="font-medium text-slate-200">{c.recruiter_name}</span>
+                    <div className="flex items-center gap-2">
+                      {isFromAi ? (
+                        <span className="rounded bg-blue-950/60 px-1.5 py-0.5 font-mono text-[10px] text-blue-300">
+                          Abdullah AI
+                        </span>
+                      ) : null}
+                      <span
+                        className={`font-mono ${
+                          c.status === 'New' ? 'font-bold text-red-400' : 'text-slate-400'
+                        }`}
+                      >
+                        {c.status}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-1 truncate text-sm font-semibold text-white">{c.subject}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-400">
+                    Contact: {c.recruiter_email}
+                  </p>
+                </button>
+              );
+            })
           )}
         </div>
 
@@ -541,7 +559,7 @@ export function AdminAiSmtpTabs({
                 <div>
                   <h3 className="font-display text-lg font-semibold text-white">{activeConv.subject}</h3>
                   <p className="text-xs text-slate-400">
-                    {activeConv.recruiter_name} ({activeConv.recruiter_email}) · {activeConv.company || 'Independent'}
+                    {activeConv.recruiter_name} · Contact: <span className="text-slate-200">{activeConv.recruiter_email}</span> · {activeConv.company || 'Independent'}
                   </p>
                 </div>
                 <select

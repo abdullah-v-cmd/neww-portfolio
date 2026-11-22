@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { MessageSquare, X, Send, Copy, Check, Trash2, ArrowUpRight, Mail } from 'lucide-react';
+import { MessageSquare, X, Send, Copy, Check, Trash2, Mail } from 'lucide-react';
 import { ProfileMode } from '../types/portfolio';
 import { parseJsonSafe } from '../utils/safeFetch';
 
@@ -10,29 +10,38 @@ interface Citation {
   score: number;
 }
 
+interface MessageDispatched {
+  ok: boolean;
+  threadToken: string;
+  emailSent: boolean;
+  senderName: string;
+  contact: string;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
   providerUsed?: string;
+  messageDispatched?: MessageDispatched | null;
 }
 
 interface AbdullahAIChatProps {
   isOpen: boolean;
   onToggle: (open: boolean) => void;
   profileMode: ProfileMode;
-  onNavigateCitation: (sourceType: string, sourceId: string) => void;
+  onNavigateCitation?: (sourceType: string, sourceId: string) => void;
   onJumpToContact: () => void;
 }
 
 const SUGGESTED_QUESTIONS = [
   'Tell me about Abdullah Naveed.',
+  'List all of Abdullah’s GitHub repositories.',
+  'Send a message to Abdullah for me.',
   'What RAG systems has Abdullah built?',
-  'Explain V-Watch and its architecture.',
   'Which projects have verified live demos?',
   'Compare RAG vs fine-tuning for production systems.',
-  'How do you deploy FastAPI with Docker cleanly?',
 ];
 
 function renderInlineMarkdown(text: string) {
@@ -258,7 +267,6 @@ export function AbdullahAIChat({
   isOpen,
   onToggle,
   profileMode,
-  onNavigateCitation,
   onJumpToContact,
 }: AbdullahAIChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -329,6 +337,7 @@ export function AbdullahAIChat({
             answer?: string;
             citations?: Citation[];
             providerUsed?: string;
+            messageDispatched?: MessageDispatched | null;
             error?: string;
           }>(res);
           if (data.error) throw new Error(data.error);
@@ -341,6 +350,7 @@ export function AbdullahAIChat({
                     content: data.answer || '',
                     citations: data.citations || [],
                     providerUsed: data.providerUsed || '',
+                    messageDispatched: data.messageDispatched || null,
                   }
                 : m
             )
@@ -359,6 +369,7 @@ export function AbdullahAIChat({
           answer?: string;
           citations?: Citation[];
           providerUsed?: string;
+          messageDispatched?: MessageDispatched | null;
           error?: string;
         }>(fallbackRes);
         if (!fallbackRes.ok || fallbackData.error) {
@@ -373,6 +384,7 @@ export function AbdullahAIChat({
                   content: fallbackData.answer || '',
                   citations: fallbackData.citations || [],
                   providerUsed: fallbackData.providerUsed || '',
+                  messageDispatched: fallbackData.messageDispatched || null,
                 }
               : m
           )
@@ -419,6 +431,7 @@ export function AbdullahAIChat({
                     ...m,
                     citations: payload.citations || [],
                     providerUsed: payload.providerUsed || '',
+                    messageDispatched: payload.messageDispatched || null,
                   }
                 : m
             )
@@ -430,7 +443,10 @@ export function AbdullahAIChat({
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          buffer += decoder.decode();
+          break;
+        }
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || '';
@@ -547,7 +563,22 @@ export function AbdullahAIChat({
                   {msg.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   ) : msg.content ? (
-                    <FormattedMarkdown content={msg.content} />
+                    <div className="space-y-2.5">
+                      <FormattedMarkdown content={msg.content} />
+                      {msg.messageDispatched?.ok ? (
+                        <div className="rounded-lg border border-emerald-700/60 bg-emerald-950/35 px-3 py-2 text-xs text-emerald-200">
+                          <p className="font-semibold text-emerald-300">
+                            Message delivered to Abdullah’s Admin Inbox
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-emerald-200/80">
+                            Sender: {msg.messageDispatched.senderName} ({msg.messageDispatched.contact}) ·{' '}
+                            {msg.messageDispatched.emailSent
+                              ? 'Email alert dispatched via SMTP'
+                              : 'Logged in Admin Recruiter Inbox'}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                   ) : (
                     <p className="text-xs text-slate-400">
                       {isStreaming ? 'Searching verified records…' : ''}
@@ -574,23 +605,6 @@ export function AbdullahAIChat({
                         </>
                       )}
                     </button>
-
-                    {msg.citations && msg.citations.length > 0 ? (
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                        <span>Sources:</span>
-                        {msg.citations.slice(0, 3).map((c, idx) => (
-                          <button
-                            key={`${c.source_type}-${c.source_id}-${idx}`}
-                            type="button"
-                            onClick={() => onNavigateCitation(c.source_type, c.source_id)}
-                            className="inline-flex items-center gap-0.5 text-blue-400 hover:underline"
-                          >
-                            <span>{c.title}</span>
-                            <ArrowUpRight className="h-3 w-3" />
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                 ) : null}
               </div>

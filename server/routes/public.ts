@@ -276,8 +276,12 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
-    req.on('close', () => {
-      clientClosed = true;
+    res.write(': connected\n\n');
+
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        clientClosed = true;
+      }
       if (heartbeat) {
         clearInterval(heartbeat);
         heartbeat = null;
@@ -318,19 +322,77 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
 
     db.prepare(`UPDATE ai_conversations SET updated_at = datetime('now') WHERE id = ?`).run(conv.id);
 
+    let messageDispatched: {
+      ok: boolean;
+      threadToken: string;
+      emailSent: boolean;
+      senderName: string;
+      contact: string;
+    } | null = null;
+
+    if (result.forwardedMessage) {
+      const fm = result.forwardedMessage;
+      const threadToken = generateSecureToken(16);
+      const cleanSubject = fm.subject
+        ? `[Abdullah AI] ${fm.subject}`.slice(0, 200)
+        : `[Abdullah AI] Message from ${fm.name}`.slice(0, 200);
+      const formattedBody = `Contact Info: ${fm.contact}\n\n${fm.message}`.slice(0, 5000);
+
+      db.transaction(() => {
+        const cInfo = db
+          .prepare(
+            `INSERT INTO recruiter_conversations (thread_token, recruiter_name, recruiter_email, company, subject, status)
+             VALUES (?, ?, ?, 'Via Abdullah AI', ?, 'New')`
+          )
+          .run(threadToken, fm.name, fm.contact, cleanSubject);
+        const recConvId = Number(cInfo.lastInsertRowid);
+        db.prepare(
+          `INSERT INTO recruiter_messages (conversation_id, sender_type, sender_name, body, attachment_url, attachment_name)
+           VALUES (?, 'recruiter', ?, ?, '', '')`
+        ).run(recConvId, fm.name, formattedBody);
+      })();
+
+      let emailSent = false;
+      try {
+        const mailRes = await notifyAdminOfRecruiterMessage({
+          recruiterName: fm.name,
+          recruiterEmail: fm.contact,
+          company: 'Via Abdullah AI',
+          subject: cleanSubject,
+          body: fm.message,
+          threadToken,
+        });
+        emailSent = mailRes.emailSent;
+      } catch {
+        emailSent = false;
+      }
+
+      messageDispatched = {
+        ok: true,
+        threadToken,
+        emailSent,
+        senderName: fm.name,
+        contact: fm.contact,
+      };
+    }
+
     if (heartbeat) {
       clearInterval(heartbeat);
       heartbeat = null;
     }
 
     if (stream) {
-      if (clientClosed || res.writableEnded) return;
+      if (clientClosed || res.writableEnded) {
+        if (!res.writableEnded) res.end();
+        return;
+      }
       res.write(
         `data: ${JSON.stringify({
           type: 'done',
           sessionId: sid,
           citations: result.citations,
           providerUsed: result.providerUsed,
+          messageDispatched,
         })}\n\n`
       );
       return res.end();
@@ -341,6 +403,7 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
       answer: result.answer,
       citations: result.citations,
       providerUsed: result.providerUsed,
+      messageDispatched,
     });
   } catch (err: any) {
     if (heartbeat) {
@@ -349,7 +412,7 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     }
     const msg = err?.message || 'Unable to reach AI provider.';
     if (stream) {
-      if (!clientClosed && !res.writableEnded) {
+      if (!res.writableEnded) {
         res.write(`data: ${JSON.stringify({ type: 'error', error: msg })}\n\n`);
         res.end();
       }

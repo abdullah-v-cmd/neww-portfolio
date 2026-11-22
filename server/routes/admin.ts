@@ -1196,10 +1196,11 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
       return res.status(503).json({ error: 'GitHub API returned an unexpected payload format.' });
     }
     const upsert = db.prepare(`
-      INSERT INTO github_repos (name, full_name, description, language, html_url, homepage, stars, forks, updated_at_gh, topics_json, approval_status, repo_status, synced_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'discovered', ?, datetime('now'))
+      INSERT INTO github_repos (name, full_name, description, readme_excerpt, language, html_url, homepage, stars, forks, updated_at_gh, topics_json, approval_status, repo_status, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'discovered', ?, datetime('now'))
       ON CONFLICT(name) DO UPDATE SET
         description = COALESCE(NULLIF(excluded.description, ''), github_repos.description),
+        readme_excerpt = COALESCE(NULLIF(excluded.readme_excerpt, ''), github_repos.readme_excerpt),
         language = COALESCE(excluded.language, github_repos.language),
         homepage = COALESCE(excluded.homepage, github_repos.homepage),
         stars = excluded.stars,
@@ -1209,6 +1210,29 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
         synced_at = datetime('now')
     `);
 
+    const readmeMap = new Map<string, string>();
+    await Promise.all(
+      repos.slice(0, 35).map(async (r) => {
+        try {
+          const branch = r.default_branch || 'main';
+          const rmRes = await fetch(`https://raw.githubusercontent.com/${r.full_name}/${branch}/README.md`, {
+            signal: AbortSignal.timeout(3500),
+          });
+          if (rmRes.ok) {
+            const clean = (await rmRes.text())
+              .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 900);
+            if (clean) readmeMap.set(r.name, clean);
+          }
+        } catch {
+          // Non-fatal if README absent
+        }
+      })
+    );
+
     db.transaction(() => {
       for (const r of repos) {
         const inferredStatus = r.archived ? 'Archived' : r.size === 0 ? 'Incomplete' : 'Verified';
@@ -1216,6 +1240,7 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
           r.name,
           r.full_name,
           r.description || '',
+          readmeMap.get(r.name) || '',
           r.language || '',
           r.html_url,
           r.homepage || '',
@@ -1228,10 +1253,11 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
       }
     })();
 
+    rebuildPublicKnowledgeBase();
     logAudit(req.adminUser!.email, 'GITHUB_SYNC', 'github', username, `Synced ${repos.length} repositories`, req.ip || '');
     return res.json({ synced: repos.length, repos: db.prepare('SELECT * FROM github_repos ORDER BY id ASC').all() });
   } catch (err: any) {
-    return res.status(502).json({ error: err?.message || 'GitHub sync failed.' });
+    return res.status(503).json({ error: err?.message || 'GitHub sync failed.' });
   }
 });
 

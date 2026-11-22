@@ -109,18 +109,22 @@ export async function notifyAdminOfRecruiterMessage(params: {
   subject: string;
   body: string;
   threadToken: string;
-}): Promise<void> {
+}): Promise<{ emailSent: boolean; statusMessage: string }> {
   const settings = getSmtpSettings();
-  if (!settings || !settings.is_enabled || !settings.notification_email) return;
+  if (!settings || !settings.is_enabled || !settings.notification_email) {
+    return { emailSent: false, statusMessage: 'SMTP notifications not enabled.' };
+  }
 
-  await sendEmailViaSmtp({
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(params.recruiterEmail.trim());
+  const result = await sendEmailViaSmtp({
     to: settings.notification_email,
     subject: `[Portfolio Inquiry] ${params.subject} — ${params.recruiterName}`,
-    replyTo: params.recruiterEmail,
+    replyTo: isEmail ? params.recruiterEmail.trim() : undefined,
     text: [
-      `New recruiter message received on Abdullah Naveed's portfolio:`,
-      `From: ${params.recruiterName} <${params.recruiterEmail}>`,
-      params.company ? `Company: ${params.company}` : '',
+      `New message received on Abdullah Naveed's portfolio:`,
+      `From: ${params.recruiterName}`,
+      `Contact Info: ${params.recruiterEmail}`,
+      params.company ? `Source / Company: ${params.company}` : '',
       `Subject: ${params.subject}`,
       `Thread Reference: ${params.threadToken}`,
       ``,
@@ -129,6 +133,7 @@ export async function notifyAdminOfRecruiterMessage(params: {
       .filter(Boolean)
       .join('\n'),
   });
+  return { emailSent: result.ok, statusMessage: result.message };
 }
 
 export async function notifyAdminOfCvRequest(params: {

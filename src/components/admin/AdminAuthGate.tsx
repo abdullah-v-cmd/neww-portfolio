@@ -23,8 +23,8 @@ export function AdminAuthGate({
   onAuthenticated,
   onExitAdmin,
 }: AdminAuthGateProps) {
-  const [email, setEmail] = useState('abdullah2w1w@gmail.com');
-  const [displayName, setDisplayName] = useState('Abdullah Naveed');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -38,8 +38,8 @@ export function AdminAuthGate({
     try {
       const endpoint = needsBootstrap ? '/api/admin/auth/bootstrap' : '/api/admin/auth/login';
       const payload = needsBootstrap
-        ? { email, displayName, password }
-        : { email, password, totpCode: mfaRequired ? totpCode : undefined };
+        ? { email: email.trim(), displayName: displayName.trim(), password }
+        : { email: email.trim(), password, totpCode: mfaRequired ? totpCode.trim() : undefined };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -86,7 +86,7 @@ export function AdminAuthGate({
             <p className="text-xs text-slate-400">
               {needsBootstrap
                 ? 'Provision the primary owner credentials (one-time lock).'
-                : 'Server-verified session with RBAC & audit logging.'}
+                : 'Restricted administrative portal · Enter both email and password.'}
             </p>
           </div>
         </div>
@@ -97,42 +97,57 @@ export function AdminAuthGate({
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-300">Admin Email</label>
+            <label htmlFor="admin-login-email" className="mb-1.5 block text-xs font-medium text-slate-300">
+              Admin Email
+            </label>
             <input
+              id="admin-login-email"
+              name="admin-login-email"
               type="email"
               required
+              autoComplete="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white focus:border-red-500 focus:outline-none"
+              placeholder="Enter admin email address"
+              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
             />
           </div>
 
           {needsBootstrap ? (
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Display Name</label>
+              <label htmlFor="admin-display-name" className="mb-1.5 block text-xs font-medium text-slate-300">
+                Display Name
+              </label>
               <input
+                id="admin-display-name"
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white focus:border-red-500 focus:outline-none"
+                placeholder="Full Name"
+                className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
               />
             </div>
           ) : null}
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-300">
+            <label htmlFor="admin-login-password" className="mb-1.5 block text-xs font-medium text-slate-300">
               {needsBootstrap ? 'Choose Owner Password (min 10 chars)' : 'Password'}
             </label>
             <input
+              id="admin-login-password"
+              name="admin-login-password"
               type="password"
               required
+              autoComplete="new-password"
               minLength={needsBootstrap ? 10 : 1}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white focus:border-red-500 focus:outline-none"
+              placeholder="Enter password"
+              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
             />
           </div>
 

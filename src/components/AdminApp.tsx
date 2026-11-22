@@ -212,19 +212,32 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
+            const unreadMsgs =
+              item.id === 'messages' ? messages.filter((m) => m.status === 'New').length : 0;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap ${
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap ${
                   active
                     ? 'bg-red-600 text-white'
                     : 'text-slate-400 hover:bg-zinc-900 hover:text-white'
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="flex items-center gap-3">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
+                </span>
+                {unreadMsgs > 0 ? (
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+                      active ? 'bg-black/30 text-white' : 'bg-red-600/20 text-red-400'
+                    }`}
+                  >
+                    {unreadMsgs}
+                  </span>
+                ) : null}
               </button>
             );
           })}

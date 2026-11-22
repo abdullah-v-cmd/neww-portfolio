@@ -491,7 +491,7 @@ function seedInitialData(): void {
       'Pakistan',
       'abdullah2w1w@gmail.com',
       'https://github.com/abdullah-v-cmd',
-      'https://www.linkedin.com',
+      'https://www.linkedin.com/in/abdullah-naveed-8353492a1',
       0, // Must remain disabled unless admin explicitly enables it
       'Available for AI & Software Engineering Roles',
       '/assets/aistudio/WhatsApp_Image_2026-11-10_at_3.01.25_PM_a9079bdf.jpeg',
@@ -1295,6 +1295,22 @@ const SKILL_PROFILES: Record<string, { description: string; whatItDoes: string; 
 };
 
 function runPostSeedMigrations(): void {
+  // 0. Upgrade placeholder LinkedIn URL to verified profile link
+  const profLinkRow = db.prepare(`SELECT linkedin_url FROM profile_settings WHERE id = 1`).get() as
+    | { linkedin_url?: string }
+    | undefined;
+  if (
+    profLinkRow &&
+    (!profLinkRow.linkedin_url ||
+      profLinkRow.linkedin_url.trim() === 'https://www.linkedin.com' ||
+      profLinkRow.linkedin_url.trim() === 'https://linkedin.com')
+  ) {
+    db.prepare(`UPDATE profile_settings SET linkedin_url = ?, updated_at = datetime('now') WHERE id = 1`).run(
+      'https://www.linkedin.com/in/abdullah-naveed-8353492a1'
+    );
+    db.prepare(`DELETE FROM knowledge_chunks`).run();
+  }
+
   // 1. Sync Groq env key if configured in AI Studio Secrets (`groq-api` or `GROQ_API_KEY`)
   const groqKey = getGroqEnvKey();
   if (groqKey) {
@@ -1472,40 +1488,58 @@ function runPostSeedMigrations(): void {
   }
 
   // 3. Keep GitHub repository status classifications honest & up-to-date
-  const ghUpdates: Array<[string, string, string]> = [
-    ['Omni-Advanced-Version-of-Research-Bot', 'Completed', ''],
-    ['vwatch-ai-traffic-violation-system', 'Completed', ''],
-    ['Rag-System-with-scalable-architecture', 'Completed', 'rag-systems'],
-    ['01-vanilla-rag', 'Completed', 'rag-systems'],
-    ['AI-ML-Engineering-Lab', 'Completed', ''],
-    ['legalai-document-intelligence', 'Completed', ''],
-    ['mlops-engineering-platform', 'Completed', ''],
-    ['zarafit-ai-tryon', 'Experimental', ''],
-    ['luxewatch-ecommerce', 'Completed', ''],
-    ['Scaleable-Ai-api-system', 'Completed', ''],
-    ['gymbro-fullstack-platform', 'Completed', 'muscle-bros-series'],
-    ['AI-Studio-Multi-Modal-AI-Content-Generation-Platform', 'Completed', ''],
-    ['linkedin-job-bot', 'Completed', 'linkedin-job-bot-series'],
-    ['ML-PipeLine-End-to-End', 'Completed', ''],
-    ['LMS-COMPLETE', 'Completed', 'lms-series'],
-    ['production-rag-document-intelligence', 'Experimental', 'rag-systems'],
-    ['Jarvis-Assistant', 'Experimental', ''],
-    ['multi_gan_ai', 'Experimental', ''],
-    ['marketshield-ai', 'Incomplete', ''],
-    ['bros-fullstack', 'Superseded / Companion', 'muscle-bros-series'],
-    ['muscle-bros', 'Superseded / Companion', 'muscle-bros-series'],
-    ['linkedin-job-bot-results', 'Companion Output Repo', 'linkedin-job-bot-series'],
+  const ghUpdates: Array<[string, string, string, string, string]> = [
+    ['Omni-Advanced-Version-of-Research-Bot', 'Completed', '', 'OmniSynth - Enterprise AI Research & Productivity Platform', '9-agent research orchestration, FAISS RAG, Groq Llama-3-70B & Mixtral, FastAPI + Next.js, live Vercel frontend.'],
+    ['vwatch-ai-traffic-violation-system', 'Completed', '', 'V-Watch: AI-Powered Smart Traffic Violation Detection and Centralized Management System', '24/7 CCTV AI traffic monitoring with YOLOv8, OpenCV, FastAPI, React, PostgreSQL, Docker Compose & self-healing RTSP watchdog.'],
+    ['Rag-System-with-scalable-architecture', 'Completed', 'rag-systems', 'RAG Document Intelligence Platform with scalable pgvector, Redis, Celery & FastAPI architecture', 'Production-oriented multi-user RAG platform using FastAPI, React, PostgreSQL pgvector, Redis, and Celery async indexing.'],
+    ['01-vanilla-rag', 'Completed', 'rag-systems', 'From-scratch Retrieval-Augmented Generation pipeline without LangChain or external vector DBs', 'Explicit ingestion, chunking, sentence embeddings, cosine vector search, and grounded LLM citations in Python.'],
+    ['AI-ML-Engineering-Lab', 'Completed', '', '60 complete, self-contained AI & Machine Learning model implementations (Classical ML to GenAI)', 'Modular runnable implementations covering regression, ensembles, CNNs, RNNs, transformers, PyTorch, TensorFlow & scikit-learn.'],
+    ['legalai-document-intelligence', 'Completed', '', 'LegalAI - AI-powered Legal Assistant with FastAPI, HuggingFace models, document generation & admin panel', 'Legal Q&A, paper/assignment/presentation generation, image/document analysis, and admin dashboard.'],
+    ['mlops-engineering-platform', 'Completed', '', 'MLOps Engineering Lab - Reproducible model training, MLflow tracking, DVC & Docker API serving', 'End-to-end MLOps pipeline with experiment tracking, dataset versioning, evaluation, and containerized serving.'],
+    ['zarafit-ai-tryon', 'Experimental', '', 'ZaraFit - AI Virtual Try-On Bot powered by IDM-VTON', 'Live camera/photo upload virtual garment fitting assistant using Hugging Face IDM-VTON inference.'],
+    ['luxewatch-ecommerce', 'Completed', '', 'Premium Watch & Glasses eCommerce - Full Stack (FastAPI + Next.js + PostgreSQL + Redis + Stripe)', 'Full-stack e-commerce platform with SQLAlchemy/Alembic, Next.js 14, TailwindCSS, Redis caching, and Stripe checkout.'],
+    ['Scaleable-Ai-api-system', 'Completed', '', 'Multi-Model AI Service Platform - Unified edge API gateway built with Hono & TypeScript', 'Unified multi-provider AI gateway built on Hono, TypeScript, and Cloudflare Workers.'],
+    ['gymbro-fullstack-platform', 'Completed', 'muscle-bros-series', 'Muscle Bros - Full-Stack Membership, Subscriptions, AI Support & Admin Platform', 'Full-stack platform for a UK youth-empowerment gym & mentorship program with JWT auth, subscriptions, email automation & AI support.'],
+    ['AI-Studio-Multi-Modal-AI-Content-Generation-Platform', 'Completed', '', 'AI Studio - Multi-Modal AI Content Generation Platform (Images, Audio & Text)', 'TypeScript platform supporting FLUX.1-schnell / SDXL image generation, multi-style presets, audio, and text workflows.'],
+    ['linkedin-job-bot', 'Completed', 'linkedin-job-bot-series', 'LinkedIn Job Bot - Auto job search, CV matching, AI answers & GitHub sync', 'Automated LinkedIn job search, CV relevance matching, AI answer generation, and GitHub results syncing.'],
+    ['ML-PipeLine-End-to-End', 'Completed', '', 'ML Pipeline - End-to-End Machine Learning workbench on Cloudflare Pages', 'Interactive web workbench for dataset upload, preprocessing, regression training, evaluation, and full ML lifecycle management.'],
+    ['LMS-COMPLETE', 'Completed', 'lms-series', 'EduSphere / LMS-COMPLETE - Full-Stack TypeScript Learning Management System (Live on Vercel)', 'Production-documented TypeScript LMS with multi-role RBAC (student, instructor, admin), Docker support & live Vercel deployment.'],
+    ['production-rag-document-intelligence', 'Experimental', 'rag-systems', 'RAG Chatbot with LangChain + FAISS retrieval pipeline', 'Foundational Python RAG chatbot loading documents, creating embeddings, indexing in FAISS, and answering with LLM context.'],
+    ['Jarvis-Assistant', 'Experimental', '', 'Jarvis Assistant - Python Voice AI Assistant with Speech Recognition & TTS', 'Python personal voice assistant handling natural-language voice commands, text-to-speech responses, and desktop automation.'],
+    ['multi_gan_ai', 'Experimental', '', 'Multi-GAN Multimodal AI Platform with FastAPI & PyTorch', 'Generative AI platform pairing a FastAPI backend, PyTorch GAN architectures, and a responsive frontend UI under MIT license.'],
+    ['marketshield-ai', 'Incomplete', '', 'MarketShield AI - Empty placeholder repository (no source code pushed yet)', 'Reserved empty placeholder repository without implementation or README yet.'],
+    ['bros-fullstack', 'Superseded / Companion', 'muscle-bros-series', 'Bros Full-Stack - Modern Full-Stack Web Platform companion/prototype', 'Companion full-stack prototype demonstrating responsive frontend, REST API, authentication, database workflows & Docker setup.'],
+    ['muscle-bros', 'Superseded / Companion', 'muscle-bros-series', 'Muscle Bros UK - Charity Website ("Built in the Gym. Shaped for Life.")', 'Earlier UK charity website prototype for Muscle Bros UK youth mentorship, gym memberships, and supplement support (14-25).'],
+    ['linkedin-job-bot-results', 'Companion Output Repo', 'linkedin-job-bot-series', 'LinkedIn Job Bot - Automated job tracking outputs (JSON & Markdown reports)', 'Companion results repository storing dated *_jobs.json and *_report.md job search outputs synced by linkedin-job-bot.'],
   ];
-  const updGh = db.prepare(`UPDATE github_repos SET repo_status = ?, companion_group = ? WHERE name = ?`);
-  for (const [name, st, grp] of ghUpdates) {
-    updGh.run(st, grp, name);
+  const updGh = db.prepare(`
+    UPDATE github_repos
+    SET repo_status = ?,
+        companion_group = ?,
+        description = CASE WHEN description = '' OR description = 'gemini' THEN ? ELSE description END,
+        readme_excerpt = CASE WHEN readme_excerpt = '' THEN ? ELSE readme_excerpt END
+    WHERE name = ?
+  `);
+  for (const [name, st, grp, desc, excerpt] of ghUpdates) {
+    updGh.run(st, grp, desc, excerpt, name);
   }
-  const hasNewPortfolioGh = db.prepare(`SELECT id FROM github_repos WHERE name = 'neww-portfolio'`).get();
+  const hasNewPortfolioGh = db.prepare(`SELECT id, readme_excerpt FROM github_repos WHERE name = 'neww-portfolio'`).get() as
+    | { id: number; readme_excerpt?: string }
+    | undefined;
   if (!hasNewPortfolioGh) {
     db.prepare(`
-      INSERT INTO github_repos (name, full_name, description, language, html_url, approval_status, repo_status)
-      VALUES ('neww-portfolio', 'abdullah-v-cmd/neww-portfolio', 'AI Engineer Portfolio Platform source repository', 'TypeScript', 'https://github.com/abdullah-v-cmd/neww-portfolio', 'hidden', 'In Progress')
+      INSERT INTO github_repos (name, full_name, description, readme_excerpt, language, html_url, approval_status, repo_status)
+      VALUES ('neww-portfolio', 'abdullah-v-cmd/neww-portfolio', 'AI Engineer Portfolio Platform, Abdullah AI RAG Assistant & Admin CMS', 'React 19, TypeScript, Tailwind CSS v4, Three.js, Express + SQLite (better-sqlite3) full-stack portfolio and CMS.', 'TypeScript', 'https://github.com/abdullah-v-cmd/neww-portfolio', 'hidden', 'In Progress')
     `).run();
+    db.prepare(`DELETE FROM knowledge_chunks`).run();
+  } else if (!hasNewPortfolioGh.readme_excerpt) {
+    db.prepare(`
+      UPDATE github_repos
+      SET description = 'AI Engineer Portfolio Platform, Abdullah AI RAG Assistant & Admin CMS',
+          readme_excerpt = 'React 19, TypeScript, Tailwind CSS v4, Three.js, Express + SQLite (better-sqlite3) full-stack portfolio and CMS.'
+      WHERE id = ?
+    `).run(hasNewPortfolioGh.id);
+    db.prepare(`DELETE FROM knowledge_chunks`).run();
   }
 
   // 4. Enrich published skills with detailed metadata + auto-link to verified projects & roles
