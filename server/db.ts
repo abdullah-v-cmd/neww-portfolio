@@ -1,0 +1,1092 @@
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+
+const DATA_DIR = path.resolve(process.cwd(), 'data');
+export const PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'public');
+export const PRIVATE_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'private');
+
+for (const dir of [DATA_DIR, PUBLIC_UPLOADS_DIR, PRIVATE_UPLOADS_DIR]) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+const DB_PATH = path.join(DATA_DIR, 'portfolio.db');
+export const db = new Database(DB_PATH);
+
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+export function initializeDatabase(): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'owner',
+      mfa_enabled INTEGER NOT NULL DEFAULT 0,
+      mfa_secret_enc TEXT DEFAULT '',
+      failed_attempts INTEGER NOT NULL DEFAULT 0,
+      locked_until TEXT DEFAULT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      ip TEXT DEFAULT '',
+      user_agent TEXT DEFAULT '',
+      expires_at TEXT NOT NULL,
+      revoked INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      actor_email TEXT NOT NULL,
+      action TEXT NOT NULL,
+      resource_type TEXT NOT NULL,
+      resource_id TEXT DEFAULT '',
+      details TEXT DEFAULT '',
+      ip TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS profile_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      full_name TEXT NOT NULL,
+      headline TEXT NOT NULL,
+      subheadline TEXT NOT NULL,
+      bio_short TEXT NOT NULL,
+      bio_long TEXT NOT NULL,
+      about_what_i_build TEXT NOT NULL DEFAULT '',
+      about_problem_solving TEXT NOT NULL DEFAULT '',
+      about_career_goals TEXT NOT NULL DEFAULT '',
+      location TEXT NOT NULL,
+      email TEXT NOT NULL,
+      github_url TEXT NOT NULL,
+      linkedin_url TEXT NOT NULL,
+      availability_enabled INTEGER NOT NULL DEFAULT 0,
+      availability_label TEXT NOT NULL DEFAULT 'Open to AI & Software Engineering Roles',
+      avatar_url TEXT NOT NULL,
+      cover_url TEXT DEFAULT '',
+      resume_url TEXT DEFAULT '',
+      resume_filename TEXT DEFAULT '',
+      resume_downloads INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS theme_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      accent_color TEXT NOT NULL DEFAULT '#dc2626',
+      secondary_accent TEXT NOT NULL DEFAULT '#3b82f6',
+      intro_enabled INTEGER NOT NULL DEFAULT 1,
+      profile_selector_enabled INTEGER NOT NULL DEFAULT 1,
+      three_d_enabled INTEGER NOT NULL DEFAULT 1,
+      animation_intensity TEXT NOT NULL DEFAULT 'cinematic',
+      hero_cta_primary TEXT NOT NULL DEFAULT 'Explore My Work',
+      hero_cta_secondary TEXT NOT NULL DEFAULT 'Meet Abdullah AI',
+      section_order_json TEXT NOT NULL DEFAULT '["projects","skills","experience","credentials","about","contact"]',
+      hidden_sections_json TEXT NOT NULL DEFAULT '[]',
+      seo_title TEXT NOT NULL DEFAULT 'Abdullah Naveed — AI Engineer & Full-Stack Systems Architect',
+      seo_description TEXT NOT NULL DEFAULT 'Explore verified AI, RAG, Computer Vision, and Full-Stack systems engineered by Abdullah Naveed.',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS companies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      location TEXT NOT NULL,
+      arrangement TEXT NOT NULL DEFAULT 'Remote',
+      overall_dates TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      website_url TEXT DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_public INTEGER NOT NULL DEFAULT 1,
+      is_archived INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS experience_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      employment_type TEXT NOT NULL DEFAULT 'Full-time',
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL DEFAULT 'Present',
+      is_current INTEGER NOT NULL DEFAULT 0,
+      description TEXT DEFAULT '',
+      responsibilities_json TEXT NOT NULL DEFAULT '[]',
+      skills_json TEXT NOT NULL DEFAULT '[]',
+      evidence_note TEXT DEFAULT '',
+      is_public INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS education (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      institution TEXT NOT NULL,
+      degree TEXT NOT NULL,
+      field TEXT DEFAULT '',
+      student_name TEXT NOT NULL DEFAULT 'Abdullah Naveed',
+      start_date TEXT DEFAULT '',
+      end_date TEXT DEFAULT '',
+      details TEXT DEFAULT '',
+      is_public INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS skill_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS skills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category_id INTEGER NOT NULL REFERENCES skill_categories(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      proficiency_label TEXT DEFAULT '',
+      is_published INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      tagline TEXT NOT NULL,
+      overview TEXT NOT NULL,
+      problem_statement TEXT DEFAULT '',
+      solution_summary TEXT DEFAULT '',
+      architecture_notes TEXT DEFAULT '',
+      frontend_stack TEXT DEFAULT '',
+      backend_stack TEXT DEFAULT '',
+      database_stack TEXT DEFAULT '',
+      ai_models_stack TEXT DEFAULT '',
+      rag_pipeline_notes TEXT DEFAULT '',
+      technologies_json TEXT NOT NULL DEFAULT '[]',
+      features_json TEXT NOT NULL DEFAULT '[]',
+      challenges_json TEXT NOT NULL DEFAULT '[]',
+      verified_results_json TEXT NOT NULL DEFAULT '[]',
+      cover_image TEXT DEFAULT '',
+      screenshots_json TEXT NOT NULL DEFAULT '[]',
+      github_url TEXT DEFAULT '',
+      live_url TEXT DEFAULT '',
+      github_repo_name TEXT DEFAULT '',
+      company_id INTEGER DEFAULT NULL REFERENCES companies(id) ON DELETE SET NULL,
+      is_featured INTEGER NOT NULL DEFAULT 0,
+      is_published INTEGER NOT NULL DEFAULT 1,
+      is_archived INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS certificates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      issuer TEXT NOT NULL,
+      issue_date TEXT NOT NULL,
+      expiry_date TEXT DEFAULT '',
+      credential_id TEXT DEFAULT '',
+      verify_url TEXT DEFAULT '',
+      file_url TEXT NOT NULL,
+      file_type TEXT NOT NULL DEFAULT 'pdf',
+      description TEXT DEFAULT '',
+      skills_json TEXT NOT NULL DEFAULT '[]',
+      is_featured INTEGER NOT NULL DEFAULT 0,
+      is_public INTEGER NOT NULL DEFAULT 1,
+      is_archived INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS github_repos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      full_name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      language TEXT DEFAULT '',
+      html_url TEXT NOT NULL,
+      homepage TEXT DEFAULT '',
+      stars INTEGER NOT NULL DEFAULT 0,
+      forks INTEGER NOT NULL DEFAULT 0,
+      updated_at_gh TEXT DEFAULT '',
+      readme_excerpt TEXT DEFAULT '',
+      topics_json TEXT NOT NULL DEFAULT '[]',
+      approval_status TEXT NOT NULL DEFAULT 'discovered',
+      linked_project_id INTEGER DEFAULT NULL REFERENCES projects(id) ON DELETE SET NULL,
+      synced_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_providers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      provider_type TEXT NOT NULL,
+      base_url TEXT DEFAULT '',
+      model_name TEXT NOT NULL,
+      embedding_model TEXT DEFAULT '',
+      api_key_enc TEXT DEFAULT '',
+      is_active INTEGER NOT NULL DEFAULT 0,
+      is_fallback INTEGER NOT NULL DEFAULT 0,
+      max_tokens INTEGER NOT NULL DEFAULT 1024,
+      rate_limit_rpm INTEGER NOT NULL DEFAULT 30,
+      last_status TEXT DEFAULT 'ready',
+      last_error TEXT DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS knowledge_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'public',
+      token_estimate INTEGER NOT NULL DEFAULT 0,
+      vector_json TEXT NOT NULL DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'indexed',
+      error_message TEXT DEFAULT '',
+      last_indexed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL UNIQUE,
+      recruiter_profile TEXT DEFAULT 'explore',
+      title TEXT DEFAULT 'Recruiter Conversation',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      citations_json TEXT NOT NULL DEFAULT '[]',
+      provider_used TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS smtp_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      host TEXT DEFAULT '',
+      port INTEGER NOT NULL DEFAULT 587,
+      username TEXT DEFAULT '',
+      password_enc TEXT DEFAULT '',
+      from_email TEXT DEFAULT '',
+      from_name TEXT DEFAULT 'Abdullah Naveed Portfolio',
+      reply_to TEXT DEFAULT '',
+      notification_email TEXT DEFAULT '',
+      encryption_mode TEXT NOT NULL DEFAULT 'starttls',
+      is_enabled INTEGER NOT NULL DEFAULT 0,
+      inbound_webhook_secret_enc TEXT DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS email_delivery_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      status TEXT NOT NULL,
+      error_message TEXT DEFAULT '',
+      message_id TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS recruiter_conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      thread_token TEXT NOT NULL UNIQUE,
+      recruiter_name TEXT NOT NULL,
+      recruiter_email TEXT NOT NULL,
+      company TEXT DEFAULT '',
+      subject TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'New',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS recruiter_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL REFERENCES recruiter_conversations(id) ON DELETE CASCADE,
+      sender_type TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      body TEXT NOT NULL,
+      attachment_url TEXT DEFAULT '',
+      attachment_name TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS uploaded_files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'private',
+      path_key TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  seedInitialData();
+}
+
+function seedInitialData(): void {
+  const existingProfile = db.prepare('SELECT id FROM profile_settings WHERE id = 1').get();
+  if (existingProfile) return;
+
+  db.transaction(() => {
+    // 1. Profile Settings
+    db.prepare(`
+      INSERT INTO profile_settings (
+        id, full_name, headline, subheadline, bio_short, bio_long,
+        about_what_i_build, about_problem_solving, about_career_goals,
+        location, email, github_url, linkedin_url, availability_enabled,
+        availability_label, avatar_url, cover_url, resume_url, resume_filename
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      1,
+      'Abdullah Naveed',
+      'Building Intelligent Systems. Engineering the Future.',
+      'AI Engineer | Machine Learning | Generative AI | Software Development',
+      'I build intelligent applications, AI-powered solutions, retrieval systems and scalable software products that solve real-world problems.',
+      'I am Abdullah Naveed, an Artificial Intelligence Engineer and Computer Science student at Superior University. Across my engineering roles and open-source systems, I focus on taking machine learning, deep learning, Retrieval-Augmented Generation (RAG), and computer vision beyond isolated notebooks into structured, containerized full-stack software.',
+      'I design and build RAG document intelligence pipelines, multi-agent research workflows, real-time computer vision surveillance systems (YOLOv8 + edge watchdogs), MLOps experiment & serving pipelines, and full-stack web applications using FastAPI, Next.js, TypeScript, PostgreSQL, pgvector, Redis, and Docker.',
+      'I prioritize explicit, inspectable system architectures over black-box abstractions—whether implementing vanilla cosine retrieval without framework bloat, isolating RTSP video inference in dedicated watchdog containers, or enforcing strict grounding and authorization boundaries in production APIs.',
+      'To architect reliable, verifiable AI systems and scalable full-stack products that bridge applied ML research and production software engineering.',
+      'Pakistan',
+      'abdullah2w1w@gmail.com',
+      'https://github.com/abdullah-v-cmd',
+      'https://www.linkedin.com',
+      0, // Must remain disabled unless admin explicitly enables it
+      'Available for AI & Software Engineering Roles',
+      '/assets/aistudio/WhatsApp_Image_2026-11-10_at_3.01.25_PM_a9079bdf.jpeg',
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      '',
+      ''
+    );
+
+    // 2. Theme Settings & SMTP Settings
+    db.prepare('INSERT INTO theme_settings (id) VALUES (1)').run();
+    db.prepare('INSERT INTO smtp_settings (id, from_name, reply_to, notification_email) VALUES (1, ?, ?, ?)').run(
+      'Abdullah Naveed',
+      'abdullah2w1w@gmail.com',
+      'abdullah2w1w@gmail.com'
+    );
+
+    // 3. Companies & Experience Roles (Exact supplied records, no invented claims)
+    const insertCompany = db.prepare(`
+      INSERT INTO companies (name, location, arrangement, overall_dates, description, sort_order, is_public)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `);
+    const insertRole = db.prepare(`
+      INSERT INTO experience_roles (
+        company_id, title, employment_type, start_date, end_date, is_current,
+        description, responsibilities_json, skills_json, evidence_note, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const dvId = insertCompany.run(
+      'DeepVision.ai',
+      'Pakistan',
+      'Hybrid',
+      'January 2024 – Present',
+      'Multi-role AI engineering tenure covering model training, deep learning architectures, and data pipelines.',
+      1
+    ).lastInsertRowid;
+
+    insertRole.run(
+      dvId,
+      'Artificial Intelligence Engineer',
+      'Part-time',
+      'November 2025',
+      'Present',
+      1,
+      'Advancing applied AI engineering initiatives within DeepVision.ai.',
+      JSON.stringify(['Applied AI Engineering', 'Model Development & Architecture']),
+      JSON.stringify(['Python', 'Machine Learning', 'Deep Learning']),
+      'Role progression within DeepVision.ai (dates admin-editable).',
+      1
+    );
+
+    insertRole.run(
+      dvId,
+      'Junior Artificial Intelligence Programmer',
+      'Part-time',
+      'January 2024',
+      'Present',
+      1,
+      'Trained multiple machine learning and deep learning models with end-to-end data preprocessing and feature engineering.',
+      JSON.stringify([
+        'Train multiple models',
+        'Machine Learning',
+        'Deep Learning',
+        'ANN, RNN, DNN, and CNN architectures',
+        'Data Cleaning',
+        'Feature Engineering',
+      ]),
+      JSON.stringify(['Python', 'Machine Learning', 'Deep Learning', 'ANN', 'RNN', 'DNN', 'CNN', 'Data Preprocessing', 'Feature Engineering', 'Model Training']),
+      'Original listing shows January 2024 – Present; transition date admin-editable.',
+      2
+    );
+
+    const dhId = insertCompany.run(
+      'Developers Hub (Pvt.) Ltd',
+      'Lahore, Punjab, Pakistan',
+      'Remote',
+      'November 2025 – April 2026',
+      'Built document retrieval and Retrieval-Augmented Generation (RAG) solutions containerized with Docker.',
+      2
+    ).lastInsertRowid;
+
+    insertRole.run(
+      dhId,
+      'Artificial Intelligence Engineer',
+      'Part-time',
+      'November 2025',
+      'April 2026',
+      0,
+      'Built document retrieval and Retrieval-Augmented Generation solutions that addressed business needs through semantic search and applied machine learning concepts. Containerized AI systems with Docker, applying containerization tools and engineering best practices to support consistent production-oriented deployment.',
+      JSON.stringify([
+        'Built document retrieval and Retrieval-Augmented Generation (RAG) solutions',
+        'Implemented semantic search and applied machine learning concepts',
+        'Containerized AI systems with Docker for consistent production-oriented deployment',
+      ]),
+      JSON.stringify(['RAG', 'Document Retrieval', 'Semantic Search', 'Machine Learning', 'Docker', 'Python']),
+      '6 months · Remote · Lahore, Punjab, Pakistan.',
+      1
+    );
+
+    const bmId = insertCompany.run(
+      'Bravo Media',
+      'United Kingdom',
+      'Remote',
+      'June 2026 – August 2026',
+      'Full-time remote web development engagement.',
+      3
+    ).lastInsertRowid;
+
+    insertRole.run(
+      bmId,
+      'Junior Web Developer',
+      'Full-time',
+      'June 2026',
+      'August 2026',
+      0,
+      'Full-time remote Junior Web Developer engagement (3 months).',
+      JSON.stringify([]),
+      JSON.stringify(['Web Development']),
+      'Offer letter supplied as evidence; additional responsibilities can be added via Admin.',
+      1
+    );
+
+    // 4. Education (Exact supplied record, no invented dates or CGPA)
+    db.prepare(`
+      INSERT INTO education (institution, degree, field, student_name, details, is_public, sort_order)
+      VALUES (?, ?, ?, ?, ?, 1, 1)
+    `).run(
+      'Superior University',
+      'BSCS',
+      'Bachelor of Science in Computer Science',
+      'Abdullah Naveed',
+      'Undergraduate studies in Computer Science.'
+    );
+
+    // 5. Skill Categories & Skills
+    const categories = [
+      { name: 'AI & Machine Learning', slug: 'ai-ml', skills: ['Python', 'Machine Learning', 'Deep Learning', 'ANN', 'RNN', 'DNN', 'CNN', 'Data Preprocessing', 'Feature Engineering', 'Model Training'] },
+      { name: 'Generative AI & LLM Engineering', slug: 'genai-llm', skills: ['Large Language Models', 'RAG', 'Semantic Search', 'Embeddings', 'Vector Databases', 'AI Agents', 'Prompt Engineering', 'Document Retrieval', 'Hugging Face', 'Groq API'] },
+      { name: 'Backend Engineering', slug: 'backend', skills: ['FastAPI', 'Node.js', 'Express.js', 'REST APIs', 'JWT', 'SQLAlchemy', 'WebSockets', 'Authentication', 'API Integration'] },
+      { name: 'Frontend Development', slug: 'frontend', skills: ['JavaScript', 'TypeScript', 'React.js', 'Next.js', 'HTML', 'CSS', 'Tailwind CSS', 'Responsive Design'] },
+      { name: 'Databases', slug: 'databases', skills: ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis'] },
+      { name: 'DevOps & Infrastructure', slug: 'devops', skills: ['Docker', 'Git', 'GitHub', 'CI/CD', 'AWS', 'Linux'] },
+      { name: 'Computer Vision', slug: 'cv', skills: ['YOLOv8', 'OpenCV', 'Image Processing', 'Computer Vision'] },
+    ];
+    const insertCat = db.prepare('INSERT INTO skill_categories (name, slug, sort_order) VALUES (?, ?, ?)');
+    const insertSkill = db.prepare('INSERT INTO skills (category_id, name, proficiency_label, is_published, sort_order) VALUES (?, ?, ?, 1, ?)');
+    categories.forEach((cat, idx) => {
+      const catId = insertCat.run(cat.name, cat.slug, idx + 1).lastInsertRowid;
+      cat.skills.forEach((s, sIdx) => {
+        insertSkill.run(catId, s, '', sIdx + 1);
+      });
+    });
+
+    // 6. Verified Certificates (exact 3 Coursera PDFs provided by user)
+    const insertCert = db.prepare(`
+      INSERT INTO certificates (
+        title, issuer, issue_date, credential_id, verify_url, file_url, file_type,
+        description, skills_json, is_featured, is_public, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, 'pdf', ?, ?, 1, 1, ?)
+    `);
+    insertCert.run(
+      'Introduction to Back-End Development',
+      'Meta (offered through Coursera)',
+      'Aug 20, 2026',
+      'XUVF9G4QH86X',
+      'https://coursera.org/verify/XUVF9G4QH86X',
+      '/assets/aistudio/Coursera_XUVF9G4QH86X_1d5f76c4.pdf',
+      'Authorized by Meta and offered through Coursera, covering core back-end web development fundamentals.',
+      JSON.stringify(['REST APIs', 'HTML', 'CSS', 'Responsive Design']),
+      1
+    );
+    insertCert.run(
+      'Production AI Model Development and Ethics',
+      'Coursera (Professionals from the Industry)',
+      'Jul 11, 2026',
+      'E64YM0IQLQJI',
+      'https://coursera.org/verify/E64YM0IQLQJI',
+      '/assets/aistudio/Coursera_E64YM0IQLQJI_Certificates_8d86927c.pdf',
+      'Course certificate on production AI model development lifecycle and ethical deployment practices.',
+      JSON.stringify(['Machine Learning', 'Model Training', 'Large Language Models']),
+      2
+    );
+    insertCert.run(
+      'Solution Architecture and Ethical AI Design',
+      'Coursera (Professionals from the Industry)',
+      'Jul 5, 2026',
+      'SJSAJFHE620Q',
+      'https://coursera.org/verify/SJSAJFHE620Q',
+      '/assets/aistudio/Coursera_SJSAJFHE620Q_Abdullah_Naveed_certificate_1bb7572b.pdf',
+      'Course certificate covering AI solution architecture patterns and ethical AI design.',
+      JSON.stringify(['AI Agents', 'RAG', 'Docker']),
+      3
+    );
+
+    // 7. Verified GitHub Projects (inspected directly from github.com/abdullah-v-cmd)
+    const insertProject = db.prepare(`
+      INSERT INTO projects (
+        slug, title, category, tagline, overview, problem_statement, solution_summary,
+        architecture_notes, frontend_stack, backend_stack, database_stack, ai_models_stack,
+        rag_pipeline_notes, technologies_json, features_json, challenges_json, verified_results_json,
+        cover_image, github_url, live_url, github_repo_name, company_id, is_featured, is_published, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+    `);
+
+    insertProject.run(
+      'omnisynth',
+      'OmniSynth — Enterprise AI Research & Productivity Platform',
+      'Generative AI & RAG',
+      'Multi-agent research orchestration with HyDE-enhanced RAG, multi-engine OCR, and real-time collaboration.',
+      'An open-source enterprise AI research and productivity platform powered by Groq (Llama-3-70B, Mixtral-8x7B) and Hugging Face embeddings, featuring 9 specialized LangGraph agents and real-time WebSocket workspaces.',
+      'Researchers and engineering teams struggle with fragmented PDF OCR, ungrounded LLM responses, manual citation formatting, and lack of persistent semantic memory across research workspaces.',
+      'Combines Hypothetical Document Embeddings (HyDE) over FAISS with multi-engine OCR (PyMuPDF, EasyOCR, pytesseract, pdfplumber) and 9 specialized LangGraph agents inside a FastAPI + Next.js 14 Dockerized architecture.',
+      'Next.js 14 frontend communicating with FastAPI REST & WebSocket services, Nginx reverse proxy, PostgreSQL + FAISS semantic memory, and an automated endpoint test suite (test_all_endpoints.py).',
+      'Next.js 14, TypeScript, Tailwind CSS',
+      'FastAPI, Python 3.11, LangGraph, WebSockets',
+      'PostgreSQL, FAISS Vector Store',
+      'Groq (Llama-3-70B, Mixtral-8x7B), sentence-transformers (all-MiniLM-L6-v2)',
+      'Document Ingestion -> Multi-Engine OCR -> Chunking -> HyDE Query Expansion -> FAISS Vector Search + Reranking -> Grounded Multi-Agent Synthesis.',
+      JSON.stringify(['Python', 'FastAPI', 'Next.js', 'TypeScript', 'RAG', 'AI Agents', 'Semantic Search', 'Embeddings', 'Groq API', 'Hugging Face', 'PostgreSQL', 'Docker', 'WebSockets']),
+      JSON.stringify([
+        '9 specialized LangGraph agents (research, OCR, citation, drafting, summarization, plagiarism, recommendation, productivity, general)',
+        'HyDE-enhanced RAG retrieval with FAISS and reranking',
+        'Multi-engine OCR pipeline supporting PDFs, images, and DOCX',
+        'Citation generator across APA, MLA, IEEE, Chicago, Harvard, Vancouver, ACS, and BibTeX',
+        'Real-time WebSocket collaborative workspaces',
+      ]),
+      JSON.stringify([
+        'Coordinating multi-agent tool calls without exceeding free-tier rate limits',
+        'Handling scanned PDFs via fallback OCR engines cleanly',
+      ]),
+      JSON.stringify([
+        'Publicly deployed demo interface and open-source Docker Compose architecture verified in repository.',
+      ]),
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      'https://github.com/abdullah-v-cmd/Omni-Advanced-Version-of-Research-Bot',
+      'https://omni-advanced-version-of-research-b.vercel.app',
+      'Omni-Advanced-Version-of-Research-Bot',
+      null,
+      1,
+      1
+    );
+
+    insertProject.run(
+      'v-watch',
+      'V-Watch — 24/7 CCTV AI Traffic Violation System',
+      'Computer Vision',
+      'Decoupled multi-container YOLOv8 traffic violation detection with persistent MJPEG relay and auto-recovery watchdog.',
+      'Production-oriented traffic violation detection platform engineered with independent edge_ai, stream_relay, FastAPI backend, React frontend, PostgreSQL, and a 15-second health watchdog container.',
+      'Monolithic CCTV AI scripts stall when camera streams disconnect, re-download YOLO weights on restart, or tie camera lifetimes to browser HTTP requests.',
+      'Decoupled stream_relay container for persistent RTSP/demo MJPEG streams, pre-baked YOLOv8 model weights inside Docker images, exponential back-off reconnect (2s to 60s), and an external watchdog polling /health every 15s.',
+      'Dedicated Docker network uniting React/Nginx frontend, FastAPI backend, PostgreSQL 16, stream_relay, edge_ai inference container, and watchdog monitor.',
+      'React, Nginx',
+      'FastAPI, Python 3.11, Watchdog Service',
+      'PostgreSQL 16',
+      'Ultralytics YOLOv8, OpenCV',
+      '',
+      JSON.stringify(['Python', 'FastAPI', 'YOLOv8', 'OpenCV', 'Computer Vision', 'Image Processing', 'PostgreSQL', 'Docker', 'Linux']),
+      JSON.stringify([
+        'Independent stream_relay container preventing stream drops on page navigation',
+        'RTSP & fallback demo camera pipeline with exponential back-off reconnection',
+        'Containerized edge_ai worker with pre-cached YOLOv8 weights',
+        'Automated 15-second /health watchdog service for container auto-recovery',
+      ]),
+      JSON.stringify([
+        'Decoupling OpenCV frame capture from FastAPI request handlers',
+        'Recovering cleanly from intermittent RTSP network drops inside Docker',
+      ]),
+      JSON.stringify([
+        'Multi-container Docker Compose architecture with dedicated watchdog and stream_relay verified in repository.',
+      ]),
+      '/src/assets/images/project_vwatch_cover_1795329338145.jpg',
+      'https://github.com/abdullah-v-cmd/vwatch-ai-traffic-violation-system',
+      '',
+      'vwatch-ai-traffic-violation-system',
+      null,
+      1,
+      2
+    );
+
+    insertProject.run(
+      'scalable-rag-platform',
+      'RAG Document Intelligence Platform',
+      'Generative AI & RAG',
+      'Scalable microservices RAG system with FastAPI, PostgreSQL pgvector, Redis, Celery workers, and React.',
+      'A scalable document intelligence platform supporting PDF, TXT, DOC, and DOCX ingestion with asynchronous Celery processing, pgvector semantic similarity search, and React interface.',
+      'Synchronous document parsing and embedding generation blocks API threads when processing large multi-page enterprise documents.',
+      'Offloads document chunking and embedding pipelines to Celery background workers backed by Redis, storing vectors in PostgreSQL with pgvector.',
+      'Microservices Docker Compose layout: React frontend -> FastAPI gateway -> Celery workers + Redis broker -> PostgreSQL/pgvector.',
+      'React 18, TypeScript',
+      'FastAPI, Python 3.11, Celery',
+      'PostgreSQL (pgvector), Redis',
+      'Sentence Embeddings, Semantic Vector Retrieval',
+      'Async Upload -> Celery Worker Extraction -> Chunking -> Vector Embedding -> pgvector Cosine Similarity -> Context-Grounded Generation.',
+      JSON.stringify(['Python', 'FastAPI', 'RAG', 'Semantic Search', 'Document Retrieval', 'Vector Databases', 'PostgreSQL', 'Redis', 'React.js', 'Docker']),
+      JSON.stringify([
+        'Multi-format ingestion (PDF, TXT, DOC, DOCX)',
+        'Asynchronous background processing via Celery and Redis',
+        'Semantic similarity search powered by pgvector',
+      ]),
+      JSON.stringify([
+        'Coordinating asynchronous indexing status between Celery workers and frontend UI',
+      ]),
+      JSON.stringify([
+        'Containerized microservices layout with deployment documentation verified in repository.',
+      ]),
+      '/src/assets/images/project_rag_cover_1795329338796.jpg',
+      'https://github.com/abdullah-v-cmd/Rag-System-with-scalable-architecture',
+      '',
+      'Rag-System-with-scalable-architecture',
+      dhId ? Number(dhId) : null,
+      1,
+      3
+    );
+
+    insertProject.run(
+      '01-vanilla-rag',
+      '01 — Vanilla RAG (From-Scratch Retrieval Pipeline)',
+      'Generative AI & RAG',
+      'Explicit, framework-free RAG implementation from document ingestion and cosine similarity to grounded citations.',
+      'A transparent, production-oriented RAG baseline intentionally built without LangChain, LlamaIndex, or managed vector databases so every step—chunking, sentence embeddings, cosine vector search, and citation grounding—is inspectable and testable.',
+      'Heavy orchestration frameworks often hide chunk boundaries, retrieval scores, and prompt construction bugs.',
+      'Implements explicit Python modules for text chunking, sentence embeddings, normalized cosine similarity scoring, and citation-backed prompting with automated tests.',
+      'FastAPI backend service with clean frontend, Docker Compose setup, and pytest suite.',
+      'HTML, CSS, JavaScript',
+      'FastAPI, Python',
+      'In-process vector index',
+      'Sentence Embeddings, Cosine Similarity, Grounded LLM Prompting',
+      'Ingestion -> Explicit Sliding-Window Chunking -> Embedding Vectors -> Cosine Dot-Product Top-K -> Grounded Citation Prompt.',
+      JSON.stringify(['Python', 'FastAPI', 'RAG', 'Embeddings', 'Semantic Search', 'Document Retrieval', 'Docker']),
+      JSON.stringify([
+        'Zero-framework RAG implementation for full pipeline transparency',
+        'Explicit cosine similarity scoring and source citation tracking',
+        'Dockerized with automated test coverage',
+      ]),
+      JSON.stringify([
+        'Balancing chunk overlap and retrieval precision without external reranker abstractions',
+      ]),
+      JSON.stringify([]),
+      '/src/assets/images/project_rag_cover_1795329338796.jpg',
+      'https://github.com/abdullah-v-cmd/01-vanilla-rag',
+      '',
+      '01-vanilla-rag',
+      dhId ? Number(dhId) : null,
+      0,
+      4
+    );
+
+    insertProject.run(
+      'ai-ml-60-models',
+      'AI-ML-60-Models Engineering Lab',
+      'AI & Machine Learning',
+      '60 self-contained machine learning, deep learning, NLP, and computer vision implementations from scratch to PyTorch/TensorFlow.',
+      'Comprehensive engineering repository spanning Classical ML (15 models), Unsupervised Learning (5), Deep Learning (13: ANN, CNN, RNN, ResNet, GANs), NLP Sequence Models (11), Computer Vision (10), and Modern AI (6).',
+      'Applied ML engineers need reproducible, runnable baselines across classical algorithms and deep neural architectures rather than fragmented notebooks.',
+      'Structured every model into its own standalone folder with data preprocessing, training, evaluation, and prediction scripts using scikit-learn, PyTorch, and TensorFlow.',
+      'Modular Python repository grouped into 6 engineering domains with unified dependency specifications.',
+      '',
+      'Python',
+      '',
+      'scikit-learn, PyTorch, TensorFlow, ANN, RNN, DNN, CNN',
+      '',
+      JSON.stringify(['Python', 'Machine Learning', 'Deep Learning', 'ANN', 'RNN', 'DNN', 'CNN', 'Data Preprocessing', 'Feature Engineering', 'Model Training', 'Computer Vision']),
+      JSON.stringify([
+        '15 Classical Machine Learning implementations (Regression, Trees, Ensembles, SVM)',
+        '13 Deep Learning & 11 NLP sequence architectures',
+        '10 Computer Vision & 6 Modern AI modules',
+      ]),
+      JSON.stringify([
+        'Standardizing reproducible training and evaluation interfaces across 60 distinct model families',
+      ]),
+      JSON.stringify([]),
+      '/src/assets/images/project_mlops_cover_1795329338117.jpg',
+      'https://github.com/abdullah-v-cmd/AI-ML-Engineering-Lab',
+      '',
+      'AI-ML-Engineering-Lab',
+      dvId ? Number(dvId) : null,
+      1,
+      5
+    );
+
+    insertProject.run(
+      'legalai-assistant',
+      'LegalAI — Document Intelligence & Q&A Assistant',
+      'Generative AI & RAG',
+      'Full-stack legal Q&A, document drafting, and image/document analysis platform with FastAPI and Hugging Face.',
+      'A FastAPI and Hugging Face powered legal assistant offering legal Q&A, structured document/paper generation, image and document analysis, JWT authentication, and role-based administration.',
+      'Legal research and structured academic/legal drafting require accessible AI assistance coupled with role-based access control and rate limiting.',
+      'Implemented a modular FastAPI backend with Alembic migrations, JWT auth, rate limiting, Swagger API docs, CI/CD workflow, and Docker deployment.',
+      'Web UI -> FastAPI REST API (Auth/RBAC, AI Services, Document Generator) -> SQLAlchemy + Alembic.',
+      'HTML, CSS, JavaScript',
+      'FastAPI, Python, SQLAlchemy, JWT, Authentication',
+      'SQL Database (Alembic migrations)',
+      'Hugging Face Inference Models, Document Analysis',
+      '',
+      JSON.stringify(['Python', 'FastAPI', 'Hugging Face', 'SQLAlchemy', 'JWT', 'Authentication', 'Docker', 'CI/CD']),
+      JSON.stringify([
+        'Legal Q&A and structured document generation',
+        'JWT authentication with role-based admin controls and rate limiting',
+        'Dockerized deployment with GitHub Actions CI/CD',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      'https://github.com/abdullah-v-cmd/legalai-document-intelligence',
+      '',
+      'legalai-document-intelligence',
+      null,
+      0,
+      6
+    );
+
+    insertProject.run(
+      'mlops-engineering-lab',
+      'MLOps Engineering Lab — Training & Serving Pipeline',
+      'Automation & MLOps',
+      'End-to-end MLOps workflow covering DVC data versioning, MLflow experiment tracking, API serving, and Docker monitoring.',
+      'Practical MLOps engineering platform demonstrating reproducible dataset tracking (DVC), MLflow experiment logging, model packaging, API serving, and container monitoring.',
+      'Transitioning ML models beyond Jupyter notebooks requires versioned datasets, tracked experiments, and reproducible serving containers.',
+      'Assembled a complete pipeline from dataset ingestion and preprocessing through MLflow-tracked training, artifact packaging, API serving, and Docker deployment.',
+      'Dataset -> Preprocessing -> Training (MLflow) -> Model Artifact -> API Service -> Containerization & Monitoring.',
+      '',
+      'Python, FastAPI, REST APIs',
+      'MLflow SQLite tracking',
+      'Scikit-learn / ML Pipelines',
+      '',
+      JSON.stringify(['Python', 'Machine Learning', 'Model Training', 'Docker', 'CI/CD', 'REST APIs']),
+      JSON.stringify([
+        'DVC pipeline definition (dvc.yaml) and artifact tracking',
+        'MLflow experiment tracking and model registry patterns',
+        'Containerized model serving and monitoring modules',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_mlops_cover_1795329338117.jpg',
+      'https://github.com/abdullah-v-cmd/mlops-engineering-platform',
+      '',
+      'mlops-engineering-platform',
+      null,
+      1,
+      7
+    );
+
+    insertProject.run(
+      'zarafit-ai-tryon',
+      'ZaraFit — AI Virtual Try-On System',
+      'Computer Vision',
+      'Virtual garment try-on application integrating IDM-VTON, OpenCV preprocessing, and FastAPI.',
+      'Interactive virtual fitting application allowing users to capture live camera frames or upload photos, browse apparel items, and generate virtual try-on previews powered by IDM-VTON and OpenCV.',
+      'Online apparel shoppers cannot easily preview how garments fit before purchasing.',
+      'Built a FastAPI + OpenCV/rembg image preprocessing pipeline interfacing with the IDM-VTON model via Hugging Face Gradio.',
+      'HTML/CSS/JS client -> FastAPI Python backend -> rembg & OpenCV preprocessing -> IDM-VTON inference.',
+      'HTML, CSS, JavaScript',
+      'FastAPI, Python',
+      '',
+      'IDM-VTON (Hugging Face), OpenCV, rembg',
+      '',
+      JSON.stringify(['Python', 'FastAPI', 'OpenCV', 'Image Processing', 'Computer Vision', 'Hugging Face']),
+      JSON.stringify([
+        'Live camera capture and drag-and-drop photo upload',
+        'Background removal and garment masking via rembg and OpenCV',
+        'Multi-garment virtual try-on slider',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_vwatch_cover_1795329338145.jpg',
+      'https://github.com/abdullah-v-cmd/zarafit-ai-tryon',
+      '',
+      'zarafit-ai-tryon',
+      null,
+      0,
+      8
+    );
+
+    insertProject.run(
+      'luxewatch-ecommerce',
+      'LuxeWatch — Full-Stack Luxury E-Commerce',
+      'Full-Stack Development',
+      'Full-stack watches and eyewear store built with FastAPI, Next.js 14, PostgreSQL, Redis, Stripe, and Nginx.',
+      'A complete full-stack e-commerce platform featuring JWT access/refresh authentication, product catalog CRUD, Redis caching, Stripe checkout integration, and Docker Compose orchestration.',
+      'Building a high-trust luxury storefront requires strict server-side auth, fast catalog responses, and reliable payment/database state.',
+      'Paired a SQLAlchemy/Alembic FastAPI backend and PostgreSQL + Redis data layer with a Next.js 14 TypeScript storefront behind Nginx.',
+      'Next.js 14 + Tailwind CSS -> Nginx Reverse Proxy -> FastAPI + SQLAlchemy + Redis + PostgreSQL + Stripe.',
+      'Next.js, TypeScript, Tailwind CSS, React.js',
+      'FastAPI, SQLAlchemy, JWT, REST APIs, Authentication',
+      'PostgreSQL, Redis',
+      '',
+      '',
+      JSON.stringify(['Next.js', 'TypeScript', 'Tailwind CSS', 'FastAPI', 'PostgreSQL', 'Redis', 'SQLAlchemy', 'JWT', 'Docker']),
+      JSON.stringify([
+        'JWT access and refresh token authentication with profile management',
+        'Product catalog CRUD, filtering, and Redis caching',
+        'Stripe payment workflow and Docker Compose Nginx deployment',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      'https://github.com/abdullah-v-cmd/luxewatch-ecommerce',
+      '',
+      'luxewatch-ecommerce',
+      null,
+      0,
+      9
+    );
+
+    insertProject.run(
+      'scaleable-ai-api',
+      'Scaleable AI API System — Unified Multi-Model Gateway',
+      'Full-Stack Development',
+      'Edge-ready unified TypeScript API gateway routing requests across OpenAI, Anthropic, Gemini, and Cohere.',
+      'A multi-model AI gateway built with Hono and TypeScript designed for edge deployment, providing a unified interface, migrations, seed scripts, and load-testing harnesses.',
+      'Integrating disparate LLM vendor SDKs across applications creates duplicated auth, retry, and schema logic.',
+      'Implemented a unified TypeScript routing layer with Docker Compose, CI/CD GitHub Actions, database migrations, and loadtest scripts.',
+      'TypeScript/Hono edge API -> Provider adapters -> SQL migrations + Docker.',
+      'TypeScript, Vite',
+      'Node.js, REST APIs, API Integration',
+      'SQL Migrations',
+      'Multi-provider LLM Routing',
+      '',
+      JSON.stringify(['TypeScript', 'Node.js', 'REST APIs', 'API Integration', 'Docker', 'CI/CD']),
+      JSON.stringify([
+        'Unified adapter layer for multiple LLM providers',
+        'GitHub Actions CI/CD pipeline and load testing suite',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_mlops_cover_1795329338117.jpg',
+      'https://github.com/abdullah-v-cmd/Scaleable-Ai-api-system',
+      '',
+      'Scaleable-Ai-api-system',
+      null,
+      0,
+      10
+    );
+
+    insertProject.run(
+      'gymbro-fullstack',
+      'Muscle Bros — Full-Stack Membership & AI Support Platform',
+      'Full-Stack Development',
+      'Full-stack membership, subscription, email automation, and Groq AI assistant platform with FastAPI & Next.js 14.',
+      'Built for a UK youth-empowerment gym and mentorship program, combining JWT user registration, subscription workflows, Groq-powered AI support, background email automation, and an admin dashboard.',
+      'Community membership organizations need integrated subscription management, automated member emails, and an administrative portal in one cohesive stack.',
+      'Engineered a FastAPI + PostgreSQL + Redis backend paired with a Next.js 14 TypeScript frontend and Docker Compose orchestration.',
+      'Next.js 14 Frontend -> FastAPI Backend (JWT, RBAC, Rate Limiting, Email Automation) -> PostgreSQL + Redis.',
+      'Next.js, TypeScript, React.js',
+      'FastAPI, JWT, Authentication, REST APIs',
+      'PostgreSQL, Redis',
+      'Groq API AI Support Assistant',
+      '',
+      JSON.stringify(['Next.js', 'TypeScript', 'FastAPI', 'PostgreSQL', 'Redis', 'Groq API', 'JWT', 'Docker']),
+      JSON.stringify([
+        'Membership & subscription lifecycle workflows',
+        'Groq-powered AI support assistant',
+        'Admin dashboard with rate limiting and role-based access control',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_rag_cover_1795329338796.jpg',
+      'https://github.com/abdullah-v-cmd/gymbro-fullstack-platform',
+      '',
+      'gymbro-fullstack-platform',
+      null,
+      0,
+      11
+    );
+
+    insertProject.run(
+      'ai-studio-multimodal',
+      'Multi-Modal AI Content Generation Platform',
+      'Generative AI & RAG',
+      'Unified free-tier image (FLUX.1-schnell/SDXL), TTS audio, and Llama-3.3-70B text generation platform.',
+      'Web platform combining image generation (FLUX.1-schnell and SDXL via Hugging Face), text-to-speech synthesis, and Llama-3.3-70B text generation with TypeScript and Cloudflare Workers/Vite.',
+      'Creators experimenting with open-weights multimodal models often juggle separate tools for text, image, and speech.',
+      'Built an integrated TypeScript application routing image, audio, and text prompts to open-weights inference APIs with style presets.',
+      'TypeScript + Vite UI -> API Worker layer -> Hugging Face / Llama Inference.',
+      'TypeScript, React.js, Tailwind CSS',
+      'REST APIs, API Integration',
+      'SQL Migrations',
+      'FLUX.1-schnell, SDXL, Llama-3.3-70B, MMS-TTS',
+      '',
+      JSON.stringify(['TypeScript', 'Hugging Face', 'Large Language Models', 'API Integration']),
+      JSON.stringify([
+        'Multi-variant image generation with 6 style presets',
+        'Text-to-speech synthesis and Llama text generation',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      'https://github.com/abdullah-v-cmd/AI-Studio-Multi-Modal-AI-Content-Generation-Platform',
+      '',
+      'AI-Studio-Multi-Modal-AI-Content-Generation-Platform',
+      null,
+      0,
+      12
+    );
+
+    insertProject.run(
+      'linkedin-job-bot',
+      'LinkedIn Job Bot — Automated Search & CV Matching',
+      'Automation & MLOps',
+      'Python + Flask & TypeScript automation suite for job search, PDF/TXT CV extraction, and match scoring.',
+      'Automates job discovery, CV skill extraction from PDF/TXT resumes, match scoring, AI interview answer drafting, and Word document export.',
+      'Manually filtering job boards and tailoring application notes across dozens of listings is slow and error-prone.',
+      'Created a Python Flask service paired with TypeScript UI components for automated job parsing, CV matching, and structured export.',
+      'React/TypeScript UI -> Python Flask automation backend.',
+      'TypeScript, React.js',
+      'Python, REST APIs',
+      '',
+      'CV Extraction & Match Scoring',
+      '',
+      JSON.stringify(['Python', 'TypeScript', 'React.js', 'REST APIs']),
+      JSON.stringify([
+        'Drag-and-drop PDF/TXT CV parsing and skill extraction',
+        'Automated job filtering and match-score calculation',
+        'Word document export of matched opportunities',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_mlops_cover_1795329338117.jpg',
+      'https://github.com/abdullah-v-cmd/linkedin-job-bot',
+      '',
+      'linkedin-job-bot',
+      null,
+      0,
+      13
+    );
+
+    insertProject.run(
+      'ml-pipeline-end-to-end',
+      'ML Pipeline End-to-End — Interactive Regression Workbench',
+      'AI & Machine Learning',
+      'Full-stack web workbench for CSV dataset ingestion, model training, real-time predictions, and experiment tracking.',
+      'Interactive machine learning web platform enabling CSV dataset uploads with automatic feature detection, regression model training (Linear, Polynomial, Ridge), real-time inference, and experiment logging.',
+      'Rapidly inspecting tabular datasets and comparing regression baselines often requires switching between notebooks and spreadsheets.',
+      'Built an end-to-end JavaScript/TypeScript web application with D1/SQL migrations and seeded datasets.',
+      'Vite frontend + Edge API + SQL migrations.',
+      'JavaScript, TypeScript, Vite',
+      'REST APIs',
+      'SQL Migrations',
+      'Linear, Polynomial, and Ridge Regression',
+      '',
+      JSON.stringify(['JavaScript', 'TypeScript', 'Machine Learning', 'Data Preprocessing', 'Feature Engineering', 'Model Training']),
+      JSON.stringify([
+        'CSV dataset upload and automatic feature inspection',
+        'Interactive model training and experiment tracking',
+      ]),
+      JSON.stringify([]),
+      JSON.stringify([]),
+      '/src/assets/images/project_mlops_cover_1795329338117.jpg',
+      'https://github.com/abdullah-v-cmd/ML-PipeLine-End-to-End',
+      '',
+      'ML-PipeLine-End-to-End',
+      null,
+      0,
+      14
+    );
+
+    // 8. Seed initial verified GitHub repository discovery index
+    const allRepos = [
+      { name: 'Omni-Advanced-Version-of-Research-Bot', lang: 'Python', desc: 'OmniSynth - Enterprise AI Research & Productivity Platform', url: 'https://github.com/abdullah-v-cmd/Omni-Advanced-Version-of-Research-Bot', home: 'https://omni-advanced-version-of-research-b.vercel.app', status: 'approved' },
+      { name: 'vwatch-ai-traffic-violation-system', lang: 'Python', desc: 'V-Watch: AI-Powered Smart Traffic Violation Detection and Centralized Management System', url: 'https://github.com/abdullah-v-cmd/vwatch-ai-traffic-violation-system', home: '', status: 'approved' },
+      { name: 'Rag-System-with-scalable-architecture', lang: 'Python', desc: 'RAG Document Intelligence Platform with FastAPI, pgvector, Redis, Celery, React', url: 'https://github.com/abdullah-v-cmd/Rag-System-with-scalable-architecture', home: '', status: 'approved' },
+      { name: '01-vanilla-rag', lang: 'Python', desc: 'From-scratch Retrieval-Augmented Generation pipeline without framework bloat', url: 'https://github.com/abdullah-v-cmd/01-vanilla-rag', home: '', status: 'approved' },
+      { name: 'AI-ML-Engineering-Lab', lang: 'Python', desc: '60 Complete, Self-Contained AI & Machine Learning Model Implementations', url: 'https://github.com/abdullah-v-cmd/AI-ML-Engineering-Lab', home: '', status: 'approved' },
+      { name: 'legalai-document-intelligence', lang: 'HTML', desc: 'LegalAI - AI-powered Legal Assistant with FastAPI, HuggingFace models, document generation, admin panel', url: 'https://github.com/abdullah-v-cmd/legalai-document-intelligence', home: '', status: 'approved' },
+      { name: 'mlops-engineering-platform', lang: 'Python', desc: 'MLOps Engineering Lab - Model Training, DVC, MLflow & Docker Deployment', url: 'https://github.com/abdullah-v-cmd/mlops-engineering-platform', home: '', status: 'approved' },
+      { name: 'zarafit-ai-tryon', lang: 'HTML', desc: 'ZaraFit - AI Virtual Try-On Bot powered by IDM-VTON', url: 'https://github.com/abdullah-v-cmd/zarafit-ai-tryon', home: '', status: 'approved' },
+      { name: 'luxewatch-ecommerce', lang: 'TypeScript', desc: 'Premium Watch & Glasses eCommerce - Full Stack (FastAPI + Next.js + PostgreSQL + Redis + Stripe)', url: 'https://github.com/abdullah-v-cmd/luxewatch-ecommerce', home: '', status: 'approved' },
+      { name: 'Scaleable-Ai-api-system', lang: 'TypeScript', desc: 'Multi-Model AI Service Platform built with Hono and TypeScript', url: 'https://github.com/abdullah-v-cmd/Scaleable-Ai-api-system', home: '', status: 'approved' },
+      { name: 'gymbro-fullstack-platform', lang: 'Python', desc: 'Muscle Bros - Full-Stack Membership Platform with FastAPI, Next.js 14, PostgreSQL, Redis, Groq', url: 'https://github.com/abdullah-v-cmd/gymbro-fullstack-platform', home: '', status: 'approved' },
+      { name: 'AI-Studio-Multi-Modal-AI-Content-Generation-Platform', lang: 'TypeScript', desc: 'Multi-Modal AI Content Generation Platform (FLUX.1-schnell, SDXL, TTS, Llama-3.3-70B)', url: 'https://github.com/abdullah-v-cmd/AI-Studio-Multi-Modal-AI-Content-Generation-Platform', home: '', status: 'approved' },
+      { name: 'linkedin-job-bot', lang: 'TypeScript', desc: 'LinkedIn Job Bot - Auto job search, CV matching, AI answers & GitHub sync', url: 'https://github.com/abdullah-v-cmd/linkedin-job-bot', home: '', status: 'approved' },
+      { name: 'ML-PipeLine-End-to-End', lang: 'JavaScript', desc: 'End-to-End Machine Learning Web Platform', url: 'https://github.com/abdullah-v-cmd/ML-PipeLine-End-to-End', home: '', status: 'approved' },
+      { name: 'LMS-COMPLETE', lang: 'TypeScript', desc: 'Learning Management System platform', url: 'https://github.com/abdullah-v-cmd/LMS-COMPLETE', home: 'https://lms-complete-iota.vercel.app', status: 'discovered' },
+      { name: 'production-rag-document-intelligence', lang: 'Python', desc: 'RAG Chatbot using LangChain, FAISS, Sentence Transformers & PyPDF', url: 'https://github.com/abdullah-v-cmd/production-rag-document-intelligence', home: '', status: 'discovered' },
+      { name: 'Jarvis-Assistant', lang: 'Python', desc: 'Python voice assistant using speech recognition and text-to-speech', url: 'https://github.com/abdullah-v-cmd/Jarvis-Assistant', home: '', status: 'discovered' },
+      { name: 'multi_gan_ai', lang: 'Python', desc: 'Generative Adversarial Network experiments in Python', url: 'https://github.com/abdullah-v-cmd/multi_gan_ai', home: '', status: 'discovered' },
+      { name: 'marketshield-ai', lang: '', desc: 'Repository pending README and source inspection', url: 'https://github.com/abdullah-v-cmd/marketshield-ai', home: '', status: 'discovered' },
+      { name: 'bros-fullstack', lang: 'TypeScript', desc: 'Full-stack TypeScript application', url: 'https://github.com/abdullah-v-cmd/bros-fullstack', home: '', status: 'discovered' },
+      { name: 'muscle-bros', lang: 'TypeScript', desc: 'Muscle Bros web frontend', url: 'https://github.com/abdullah-v-cmd/muscle-bros', home: '', status: 'discovered' },
+      { name: 'linkedin-job-bot-results', lang: '', desc: 'LinkedIn Job Bot automated tracking outputs', url: 'https://github.com/abdullah-v-cmd/linkedin-job-bot-results', home: '', status: 'discovered' },
+    ];
+    const insertRepo = db.prepare(`
+      INSERT INTO github_repos (name, full_name, description, language, html_url, homepage, approval_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const r of allRepos) {
+      insertRepo.run(r.name, `abdullah-v-cmd/${r.name}`, r.desc, r.lang, r.url, r.home, r.status);
+    }
+
+    // 9. AI Providers (Default Gemini Server Key + Configurable Groq/OpenAI-Compatible Templates)
+    const insertProvider = db.prepare(`
+      INSERT INTO ai_providers (
+        name, provider_type, base_url, model_name, embedding_model,
+        is_active, is_fallback, max_tokens, rate_limit_rpm, last_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insertProvider.run(
+      'Google Gemini (Server Runtime)',
+      'gemini',
+      'https://generativelanguage.googleapis.com',
+      'gemini-4-hydrogen',
+      'gemini-embedding-2',
+      1,
+      0,
+      1024,
+      30,
+      process.env.GEMINI_API_KEY ? 'configured' : 'awaiting_env_key'
+    );
+    insertProvider.run(
+      'Groq Llama 3 (OpenAI-Compatible)',
+      'openai_compatible',
+      'https://api.groq.com/openai/v1',
+      'llama-3.3-70b-versatile',
+      'local-semantic-v1',
+      0,
+      1,
+      1024,
+      30,
+      'awaiting_api_key'
+    );
+  })();
+}

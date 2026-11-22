@@ -1,0 +1,2425 @@
+# MASTER PROJECT PROMPT — ABDULLAH NAVEED
+# CINEMATIC AI ENGINEER PORTFOLIO + SECURE ADMIN CMS + AI RECRUITER
+
+You are acting as a senior software architect, principal full-stack engineer, UI/UX designer, AI engineer, cybersecurity engineer, database architect and DevOps engineer.
+
+Your task is to design and build a complete, production-oriented, premium personal portfolio platform for **Abdullah Naveed**.
+
+This is a complete software product, not a simple portfolio website.
+
+The platform must include:
+
+1. A cinematic, highly animated public portfolio.
+2. A Netflix-inspired interactive browsing experience.
+3. A professional recruiter-focused experience.
+4. A powerful AI recruiter that knows Abdullah's professional background.
+5. A fully functional, highly secure admin dashboard.
+6. Complete portfolio content management.
+7. AI provider and API configuration management.
+8. Email communication using SMTP.
+9. Two-way recruiter messaging and chat.
+10. GitHub project integration.
+11. Certificate and professional document management.
+12. Database-backed content and settings.
+13. Secure authentication, authorization and audit logging.
+14. Deployment-ready infrastructure.
+
+The application must be fully functional. Do not deliver only a UI prototype.
+
+---
+
+# PART 1 — DESIGN REFERENCES AND CREATIVE DIRECTION
+
+## 1.1 Reference videos
+
+I am providing two portfolio reference videos.
+
+PRIMARY REFERENCE:
+My Netflix-inspired portfolio video.
+
+SECONDARY REFERENCE:
+My minimalist, professional portfolio video.
+
+Use the videos as actual design references.
+
+The primary video should determine:
+
+- Cinematic visual experience.
+- Profile selection.
+- Dark premium interface.
+- Animated transitions.
+- Project browsing.
+- Horizontal content collections.
+- Visual storytelling.
+- Interactive navigation.
+
+The secondary video should influence:
+
+- Typography.
+- Spacing.
+- Professional readability.
+- Technical presentation.
+- Information hierarchy.
+- Clean layouts.
+
+Use a 70/30 design balance:
+
+70% cinematic Netflix-inspired experience.
+
+30% minimalist professional design.
+
+Do not simply copy a generic developer portfolio template.
+
+Do not create a basic landing page with a navbar, static hero, ordinary project cards and a few fade animations.
+
+Create an original premium visual identity for Abdullah Naveed.
+
+Do not use Netflix trademarks, logos or copyrighted media.
+
+## 1.2 Brand identity
+
+Name:
+
+ABDULLAH NAVEED
+
+Professional identity:
+
+AI ENGINEER | MACHINE LEARNING ENGINEER | GENERATIVE AI ENGINEER | SOFTWARE DEVELOPER
+
+Brand personality:
+
+- Intelligent.
+- Technical.
+- Innovative.
+- Professional.
+- Modern.
+- Reliable.
+- Engineering-focused.
+
+Suggested visual direction:
+
+- Primary background: deep black / charcoal / dark navy.
+- Secondary surfaces: graphite.
+- Accent: controlled red.
+- Secondary accent: purple or electric blue.
+- Text: white and muted grey.
+- Premium typography.
+- Subtle glass effects.
+- Cinematic lighting.
+- Smooth motion.
+
+Avoid excessive neon, cluttered interfaces and unnecessary animations.
+
+---
+
+# PART 2 — COMPLETE USER EXPERIENCE
+
+## 2.1 Cinematic opening
+
+When someone visits the website, create an impressive opening sequence.
+
+Sequence:
+
+1. Display an elegant Abdullah Naveed brand mark.
+2. Show a short cinematic animation.
+3. Reveal the name ABDULLAH NAVEED.
+4. Introduce the professional title.
+5. Transition into the interactive portfolio.
+
+Hero text:
+
+ABDULLAH NAVEED
+
+Building Intelligent Systems.
+Engineering the Future.
+
+AI Engineer | Machine Learning | Generative AI | Software Development
+
+Description:
+
+"I build intelligent applications, AI-powered solutions, retrieval systems and scalable software products that solve real-world problems."
+
+Buttons:
+
+- Explore My Work
+- Meet Abdullah AI
+- Download Resume
+
+Requirements:
+
+- Smooth entrance animation.
+- Animated typography.
+- Subtle particles.
+- Background depth.
+- Mouse-responsive effects.
+- Responsive layout.
+- Skip introduction option.
+- Fast loading.
+
+Never force recruiters to wait through a long animation.
+
+## 2.2 Interactive profile selection
+
+Build a premium profile selection experience inspired by the first reference video.
+
+Heading:
+
+WHO'S EXPLORING?
+
+Create four profiles:
+
+1. Recruiter
+2. AI / ML Engineer
+3. Software Developer
+4. Explore Everything
+
+Each profile should open a tailored browsing experience.
+
+**Recruiter mode**
+
+Prioritize:
+
+- Professional summary.
+- Work experience.
+- Education.
+- Certificates.
+- Skills.
+- Featured projects.
+- Resume.
+- Contact.
+
+**AI / ML Engineer mode**
+
+Prioritize:
+
+- Machine learning.
+- Deep learning.
+- LLMs.
+- RAG.
+- Computer vision.
+- AI agents.
+- AI projects.
+- Technical architecture.
+
+**Software Developer mode**
+
+Prioritize:
+
+- FastAPI.
+- Python.
+- Node.js.
+- Express.js.
+- React.
+- Next.js.
+- REST APIs.
+- Databases.
+- Full-stack projects.
+
+**Explore Everything**
+
+Show the entire portfolio.
+
+Include a skip option to enter directly.
+
+Profile selection must be functional, not decorative.
+
+Do not create fake user accounts for these profiles.
+
+---
+
+# PART 3 — PUBLIC PORTFOLIO STRUCTURE
+
+Create the following sections.
+
+## 3.1 Home
+
+Premium cinematic dashboard.
+
+Display:
+
+- Professional identity.
+- Introduction.
+- Featured work.
+- Current professional position.
+- Technical expertise.
+- Career highlights.
+- Latest projects.
+- Contact CTA.
+
+Add a subtle availability indicator that can be controlled through admin.
+
+Do not claim availability for work unless the admin enables it.
+
+## 3.2 Featured Projects
+
+Create a Netflix-style horizontal carousel.
+
+Collections:
+
+- Featured Projects.
+- AI & Machine Learning.
+- Generative AI & RAG.
+- Computer Vision.
+- Full-Stack Development.
+- Automation & MLOps.
+- Experimental Projects.
+
+Each project card must contain:
+
+- Thumbnail.
+- Name.
+- Short description.
+- Main technologies.
+- Project category.
+- Featured status.
+
+On hover:
+
+- Smooth scale effect.
+- Image reveal.
+- Details animation.
+- Technology tags.
+- Quick-view option.
+
+On click, open a complete project details page.
+
+Support mouse, keyboard and touch interactions.
+
+## 3.3 Project detail pages
+
+Every project must have a dedicated details page.
+
+Information:
+
+- Project title.
+- Cover image.
+- Project overview.
+- Problem statement.
+- Proposed solution.
+- Main features.
+- Technical architecture.
+- Frontend.
+- Backend.
+- Database.
+- AI models.
+- RAG pipeline where relevant.
+- Technologies.
+- Challenges.
+- Implementation details.
+- Screenshots.
+- Architecture diagrams.
+- Verified results.
+- GitHub repository.
+- Live demo.
+
+Only display results that have actually been verified.
+
+If performance metrics are unavailable, do not invent them.
+
+## 3.4 About Abdullah
+
+Create a visually attractive professional introduction.
+
+Include:
+
+- Who I am.
+- What I build.
+- My engineering interests.
+- My technical capabilities.
+- My approach to problem-solving.
+- My professional journey.
+- My career goals.
+
+Allow all content to be edited through admin.
+
+## 3.5 Technical skills universe
+
+Create a beautiful interactive skill visualization.
+
+Categories:
+
+AI & MACHINE LEARNING
+
+- Python.
+- Machine Learning.
+- Deep Learning.
+- ANN.
+- RNN.
+- DNN.
+- CNN.
+- Data Preprocessing.
+- Feature Engineering.
+- Model Training.
+
+GENERATIVE AI & LLM ENGINEERING
+
+- Large Language Models.
+- RAG.
+- Semantic Search.
+- Embeddings.
+- Vector Databases.
+- AI Agents.
+- Prompt Engineering.
+- Document Retrieval.
+- Hugging Face.
+- Groq API.
+
+BACKEND ENGINEERING
+
+- FastAPI.
+- Node.js.
+- Express.js.
+- REST APIs.
+- JWT.
+- SQLAlchemy.
+- WebSockets.
+- Authentication.
+- API Integration.
+
+FRONTEND DEVELOPMENT
+
+- JavaScript.
+- TypeScript.
+- React.js.
+- Next.js.
+- HTML.
+- CSS.
+- Tailwind CSS.
+- Responsive Design.
+
+DATABASES
+
+- PostgreSQL.
+- MySQL.
+- MongoDB.
+- Redis.
+
+DEVOPS & INFRASTRUCTURE
+
+- Docker.
+- Git.
+- GitHub.
+- CI/CD.
+- AWS.
+- Linux.
+
+COMPUTER VISION
+
+- YOLOv8.
+- OpenCV.
+- Image Processing.
+- Computer Vision.
+
+Important:
+
+These are initial suggested skill categories, not proof of mastery.
+
+Every skill must be editable, publishable and removable through admin.
+
+Do not invent proficiency percentages or skill levels.
+
+Allow Abdullah to optionally add verified proficiency levels.
+
+When someone clicks a skill, show related projects and experience.
+
+## 3.6 Professional experience
+
+Build a cinematic professional career timeline.
+
+Use the following supplied information.
+
+### DeepVision.ai
+
+Company: DeepVision.ai
+
+Overall employment displayed in supplied profile: January 2024 – Present.
+
+Location: Pakistan.
+
+Work arrangement: Hybrid.
+
+The supplied profile shows two positions:
+
+Position 1:
+
+Junior Artificial Intelligence Programmer
+
+January 2024 – Present in the original listing, with a later role also shown beginning November 2025.
+
+Employment type: Part-time.
+
+Responsibilities listed:
+
+- Train multiple models.
+- Machine Learning.
+- Deep Learning.
+- ANN.
+- RNN.
+- DNN.
+- CNN.
+- Data Cleaning.
+- Feature Engineering.
+
+Position 2:
+
+Artificial Intelligence Engineer
+
+November 2025 – Present.
+
+IMPORTANT:
+
+Treat these as two roles within the same company, not two unrelated employers.
+
+The exact transition/end date of the first position needs to remain admin-editable.
+
+Do not invent a formal promotion date.
+
+### Developers Hub (Pvt.) Ltd
+
+Position:
+
+Artificial Intelligence Engineer.
+
+Employment type:
+
+Part-time.
+
+Dates:
+
+November 2025 – April 2026.
+
+Duration shown:
+
+6 months.
+
+Location:
+
+Lahore, Punjab, Pakistan.
+
+Work arrangement:
+
+Remote.
+
+Supplied description:
+
+"Built document retrieval and Retrieval-Augmented Generation solutions that addressed business needs through semantic search and applied machine learning concepts. Containerized AI systems with Docker, applying containerization tools and engineering best practices to support consistent production-oriented deployment."
+
+Verified areas:
+
+- Document Retrieval.
+- Retrieval-Augmented Generation.
+- RAG.
+- Semantic Search.
+- Machine Learning.
+- Docker.
+- Containerization.
+- Production-oriented deployment.
+
+### Bravo Media
+
+Position:
+
+Junior Web Developer.
+
+Employment type:
+
+Full-time.
+
+Dates:
+
+June 2026 – August 2026.
+
+Duration shown:
+
+3 months.
+
+Location:
+
+United Kingdom.
+
+Work arrangement:
+
+Remote.
+
+An offer letter was supplied as evidence.
+
+Do not invent additional responsibilities.
+
+Allow the admin to add them later.
+
+### Experience presentation
+
+Display companies as cinematic professional experience cards.
+
+Allow clicking each company to explore:
+
+- Roles.
+- Responsibilities.
+- Technologies.
+- Related projects.
+- Career progression.
+- Publicly approved documents.
+
+Allow multiple positions under one company.
+
+Do not double-count overlapping experience when calculating total professional experience.
+
+## 3.7 Education
+
+Create an education section.
+
+Initial information:
+
+Degree: BSCS.
+
+Institution: Superior University.
+
+Name: Abdullah Naveed.
+
+Do not invent:
+
+- Graduation date.
+- CGPA.
+- Academic awards.
+- Specializations.
+- Course completion.
+
+Allow admin to add semester, dates, academic achievements, courses and additional education.
+
+## 3.8 Certificates
+
+Create a premium certificate collection.
+
+The user will provide certificate files.
+
+Requirements:
+
+- Upload PDF.
+- Upload images.
+- Add certificate name.
+- Issuing organization.
+- Issue date.
+- Expiry date.
+- Credential ID.
+- Verification URL.
+- Related skills.
+- Description.
+- Visibility.
+- Featured status.
+
+Certificate interaction:
+
+- Beautiful certificate thumbnail.
+- Click to enlarge.
+- Full-screen preview.
+- Download option when public.
+- External verification link.
+
+Do not create fictional certificates.
+
+Do not expose private documents.
+
+## 3.9 Resume
+
+Create a professional resume download section.
+
+Support:
+
+- PDF resume.
+- Updated resume.
+- Admin-managed resume replacement.
+- Download tracking.
+- Recruiter-friendly layout.
+
+The public resume must only contain information explicitly approved by Abdullah.
+
+## 3.10 Contact
+
+Create a professional contact experience.
+
+Options:
+
+- Email me.
+- Start a conversation.
+- Ask Abdullah AI.
+- GitHub.
+- LinkedIn.
+
+Public contact information must be admin-editable.
+
+---
+
+# PART 4 — GITHUB INTEGRATION AND PROJECT DISCOVERY
+
+GitHub username:
+
+abdullah-v-cmd
+
+GitHub profile:
+
+https://github.com/abdullah-v-cmd
+
+Use the public repositories as the starting point for portfolio project discovery.
+
+Repositories visible in the supplied screenshots include:
+
+1. Omni-Advanced-Version-of-Research-Bot
+2. vwatch
+3. Mlops
+4. linkedin-job-bot-results
+5. rag-and-LLm-Chtabot-
+6. Rag-System-with-scalable-architecture
+7. Scaleable-Ai-api-system
+8. gan-full
+9. muscle-bros
+10. C-Management-System
+11. multi_gan_ai
+12. legalai
+13. SoccerAgent-PEAS
+14. Ann-model-Disease-checking
+15. Ann-model-House-Detection-price
+16. Jarvis-Assistant
+17. fullstack-gymbro
+18. bros-fullstack
+19. zarafit-ai-tryon
+20. lstm_sentiment_app
+21. bilstm_sentiment_app
+22. ML-PipeLine-End-to-End
+
+These repository names are initial discovery records, not fully verified project descriptions.
+
+### Mandatory GitHub inspection
+
+Inspect the actual public repository contents.
+
+Use:
+
+- README.
+- Source code.
+- Project structure.
+- Dependencies.
+- Configuration examples.
+- Screenshots.
+- Documentation.
+- Commit history where useful.
+
+For each repository determine:
+
+- What the project actually does.
+- Main programming languages.
+- Technologies.
+- AI models.
+- Architecture.
+- Features.
+- Current project status.
+- Available screenshots.
+- Deployment status.
+- GitHub URL.
+
+Do not infer functionality from repository names alone.
+
+Do not claim that every repository is a production application.
+
+Do not invent deployment URLs, users, clients, accuracy or performance.
+
+### GitHub integration
+
+Create an admin GitHub integration section.
+
+Features:
+
+- Connect GitHub.
+- Configure GitHub token securely.
+- Sync public repositories.
+- Discover new repositories.
+- Update repository metadata.
+- Select repositories for publication.
+- Hide repositories.
+- Feature projects.
+- Add manual project entries.
+- Import project descriptions.
+- Edit AI-generated summaries before publishing.
+- Refresh repository information.
+
+Never publish newly discovered repositories automatically without admin approval.
+
+Use least-privilege GitHub access.
+
+Prefer public read-only access where possible.
+
+---
+
+# PART 5 — AI RECRUITER: ABDULLAH AI
+
+This is one of the most important components.
+
+Build an advanced AI recruiter assistant.
+
+Name:
+
+ABDULLAH AI
+
+Interface label:
+
+ASK ABDULLAH AI
+
+Purpose:
+
+The AI represents Abdullah professionally and answers recruiter questions about his actual background, projects, experience, skills, certificates and capabilities.
+
+It must behave like an intelligent professional portfolio assistant.
+
+## 5.1 Example recruiter questions
+
+- Tell me about Abdullah Naveed.
+- What does Abdullah specialize in?
+- How much AI experience does he have?
+- What companies has he worked with?
+- What is his current role?
+- What is his experience with RAG?
+- Has he worked with LLMs?
+- Can he build AI agents?
+- Does he have computer vision experience?
+- What projects demonstrate his AI skills?
+- Can he build a complete AI-powered application?
+- What backend technologies does he use?
+- Has he worked with Docker?
+- Does he have experience with semantic search?
+- Tell me about OmniSynth.
+- Explain V-Watch.
+- What is his experience with FastAPI?
+- What is his GitHub profile?
+- What certificates does he have?
+- What education does he have?
+- How can I contact him?
+- Can I request his resume?
+
+## 5.2 AI architecture
+
+Use:
+
+- FastAPI.
+- LLM provider API.
+- RAG architecture.
+- PostgreSQL.
+- pgvector.
+- Embeddings.
+- Semantic retrieval.
+- Conversation management.
+
+Provider must be configurable from admin.
+
+Support a provider abstraction so new providers can be integrated without rewriting the application.
+
+Potential providers:
+
+- Groq.
+- OpenAI-compatible APIs.
+- Hugging Face inference providers.
+- Other compatible LLM APIs.
+
+Do not hardcode one provider.
+
+Do not assume an API key is already available.
+
+## 5.3 Knowledge base
+
+Create a database-backed knowledge base.
+
+Include:
+
+- About Abdullah.
+- Experience.
+- Education.
+- Skills.
+- Projects.
+- Certificates.
+- GitHub repositories.
+- Resume.
+- Professional achievements.
+- Contact information.
+- Public portfolio content.
+
+When information changes in admin, provide a way to update the AI knowledge base.
+
+Workflow:
+
+Admin changes content.
+
+↓
+
+Content is saved in PostgreSQL.
+
+↓
+
+Knowledge update is queued.
+
+↓
+
+Documents are prepared.
+
+↓
+
+Embeddings are generated.
+
+↓
+
+Vectors are updated.
+
+↓
+
+AI becomes able to answer using updated information.
+
+Add:
+
+- Sync AI Knowledge button.
+- Sync status.
+- Last sync time.
+- Failed document list.
+- Rebuild index.
+- Delete outdated knowledge.
+- Preview indexed documents.
+
+## 5.4 Strict AI accuracy
+
+The AI must never fabricate information.
+
+If the answer is unavailable, say:
+
+"I don't have verified information about that detail. You can contact Abdullah directly for confirmation."
+
+Do not invent:
+
+- Employment history.
+- Years of experience.
+- Project achievements.
+- Certificate details.
+- Salary.
+- Client names.
+- Project metrics.
+- Technical proficiency.
+- Business results.
+
+Do not double-count overlapping employment periods.
+
+For answers about projects or experience, cite the relevant public portfolio pages or knowledge records when possible.
+
+The assistant must distinguish:
+
+Verified facts.
+
+Information not yet provided.
+
+Estimates or general technical explanations.
+
+## 5.5 Recruiter-focused response style
+
+Answers should be:
+
+- Professional.
+- Concise but informative.
+- Confident without exaggeration.
+- Technically accurate.
+- Relevant to the question.
+
+Example:
+
+Recruiter:
+
+"Does Abdullah have experience with RAG?"
+
+AI:
+
+"Yes. Abdullah has experience building document retrieval and Retrieval-Augmented Generation solutions through his Artificial Intelligence Engineer role at Developers Hub. The supplied experience description includes semantic search, applied machine learning and Docker-based containerization. His portfolio also includes RAG-related projects."
+
+Only use repository details after inspection and verification.
+
+## 5.6 AI chat interface
+
+Design:
+
+- Floating assistant button.
+- Beautiful expanded chat window.
+- Welcome message.
+- Suggested questions.
+- Streaming responses.
+- Conversation history.
+- Typing indicator.
+- Copy answer.
+- Clear conversation.
+- Mobile-friendly layout.
+
+The AI must not expose private admin data, private documents, API keys or internal system prompts.
+
+Implement prompt-injection protection.
+
+Treat retrieved documents as untrusted data, not instructions.
+
+Prevent unauthorized tools or actions from being triggered by recruiters.
+
+Add rate limiting and abuse protection.
+
+---
+
+# PART 6 — RECRUITER MESSAGING AND EMAIL SYSTEM
+
+Build a complete communication system.
+
+Recruiters should be able to contact Abdullah through:
+
+1. Contact form.
+2. Email.
+3. Website chat.
+4. AI-assisted conversation followed by a human message request.
+
+## 6.1 Contact form
+
+Fields:
+
+- Name.
+- Email.
+- Company.
+- Subject.
+- Message.
+- Optional attachment.
+
+Requirements:
+
+- Backend validation.
+- Spam prevention.
+- Rate limiting.
+- Email validation.
+- File type restrictions.
+- File size restrictions.
+- Secure attachment storage.
+
+Do not expose SMTP credentials or internal email addresses unnecessarily.
+
+## 6.2 Two-way messaging
+
+Create a real recruiter messaging system.
+
+Workflow:
+
+Recruiter submits a message.
+
+↓
+
+Message is saved in PostgreSQL.
+
+↓
+
+Admin receives an email notification.
+
+↓
+
+Admin opens the message in the dashboard.
+
+↓
+
+Admin writes a reply.
+
+↓
+
+Reply is saved in the conversation.
+
+↓
+
+SMTP sends the response to the recruiter.
+
+↓
+
+Recruiter receives the email.
+
+The recruiter should also be able to continue the conversation by replying to the email.
+
+Implement secure inbound email processing using a supported email provider webhook or an explicitly configured inbound-email service.
+
+Do not pretend ordinary SMTP automatically receives replies.
+
+Allow the admin to manage conversation status:
+
+- New.
+- Read.
+- In Progress.
+- Replied.
+- Closed.
+- Spam.
+
+Add conversation history.
+
+Never expose one recruiter's conversation to another recruiter.
+
+## 6.3 SMTP administration
+
+Create:
+
+Admin → Email Settings.
+
+Allow configuration of:
+
+- SMTP host.
+- SMTP port.
+- SMTP username.
+- SMTP password.
+- Sender email.
+- Sender name.
+- Encryption mode.
+- Reply-to email.
+- Notification email.
+- Inbound email webhook configuration where supported.
+
+Features:
+
+- Test SMTP connection.
+- Send test email.
+- Save settings.
+- Update settings.
+- Disable email sending.
+- View delivery status.
+- View failed delivery logs.
+
+Never expose passwords after saving.
+
+Never store SMTP credentials in frontend code.
+
+Encrypt sensitive credentials at rest using a proper secret-management design.
+
+---
+
+# PART 7 — FULL ADMIN PANEL
+
+This is a mandatory and critical component.
+
+Build a completely separate admin application.
+
+Suggested admin route:
+
+/secure-admin
+
+This is only a routing preference, not a security mechanism.
+
+Do not rely on hiding the admin URL.
+
+The admin panel must be inaccessible to unauthorized visitors.
+
+There must be no public admin registration.
+
+## 7.1 Admin login
+
+Build:
+
+- Dedicated login page.
+- Secure authentication.
+- Argon2id password hashing.
+- Secure server-side sessions.
+- HttpOnly cookies.
+- Secure cookie flags in production.
+- CSRF protection.
+- Login rate limiting.
+- Account lockout or progressive throttling.
+- Session expiration.
+- Session revocation.
+- Logout from all sessions.
+- Optional TOTP multi-factor authentication.
+- Password reset with single-use, expiring tokens.
+
+Use generic authentication error messages to reduce account enumeration.
+
+## 7.2 Admin security
+
+Implement:
+
+- Role-based access control.
+- Permission-based authorization.
+- Server-side permission checks.
+- Database-backed admin roles.
+- Audit logging.
+- Session management.
+- Login history.
+- Suspicious activity tracking.
+- Rate limiting.
+- Input validation.
+- Output encoding.
+- SQL injection protection.
+- XSS protection.
+- CSRF protection.
+- Secure file upload validation.
+- CORS restrictions.
+- Security headers.
+- Secrets encryption.
+- Backup and restore.
+
+Never trust frontend-only authorization.
+
+Every sensitive backend endpoint must enforce authorization independently.
+
+The initial owner account must be provisioned securely through a CLI command or deployment setup process.
+
+Do not ship a default admin username/password.
+
+Do not create a public admin signup page.
+
+## 7.3 Admin dashboard overview
+
+Create a premium dashboard.
+
+Display:
+
+- Total projects.
+- Published projects.
+- Total certificates.
+- Experience entries.
+- Unread recruiter messages.
+- AI conversations.
+- GitHub sync status.
+- AI provider status.
+- SMTP status.
+- Knowledge base sync status.
+- Recent admin activities.
+
+Do not create fake statistics.
+
+Use actual database values.
+
+## 7.4 Admin modules
+
+Create the following modules.
+
+DASHBOARD
+
+ABOUT ME
+
+PERSONAL INFORMATION
+
+PROFILE / HERO SETTINGS
+
+PROFESSIONAL EXPERIENCE
+
+EDUCATION
+
+PROJECT MANAGEMENT
+
+GITHUB INTEGRATION
+
+CERTIFICATE MANAGEMENT
+
+SKILL MANAGEMENT
+
+RESUME MANAGEMENT
+
+AI RECRUITER SETTINGS
+
+AI KNOWLEDGE BASE
+
+LLM PROVIDER SETTINGS
+
+API KEY MANAGEMENT
+
+SMTP SETTINGS
+
+RECRUITER MESSAGES
+
+CHAT MANAGEMENT
+
+WEBSITE CONTENT
+
+THEME MANAGEMENT
+
+ANIMATION SETTINGS
+
+SEO SETTINGS
+
+FILE MANAGEMENT
+
+ADMIN USERS
+
+ROLES & PERMISSIONS
+
+SECURITY SETTINGS
+
+AUDIT LOGS
+
+BACKUPS & RESTORE
+
+SYSTEM HEALTH
+
+## 7.5 Personal information management
+
+Admin can edit:
+
+- Full name.
+- Professional title.
+- Short bio.
+- Long bio.
+- Profile picture.
+- Cover image.
+- Location.
+- Email.
+- LinkedIn URL.
+- GitHub URL.
+- Resume.
+- Professional availability.
+- Social links.
+
+Changes should update the public website without code editing.
+
+## 7.6 Experience management
+
+Admin can:
+
+- Add company.
+- Edit company.
+- Add multiple roles.
+- Edit positions.
+- Update dates.
+- Change employment type.
+- Add responsibilities.
+- Add achievements.
+- Add skills.
+- Associate projects.
+- Upload evidence.
+- Set public/private visibility.
+- Reorder experiences.
+- Archive entries.
+- Restore entries.
+
+Support multiple roles under one employer.
+
+## 7.7 Project management
+
+Admin can:
+
+- Add project.
+- Edit project.
+- Delete/archive project.
+- Upload thumbnail.
+- Upload screenshots.
+- Add videos.
+- Add descriptions.
+- Add technologies.
+- Add AI models.
+- Add architecture.
+- Add features.
+- Add challenges.
+- Add GitHub link.
+- Add demo link.
+- Set featured status.
+- Assign categories.
+- Connect projects with experience.
+- Set publication status.
+- Reorder project collections.
+
+Support rich-text editing.
+
+Add preview before publishing.
+
+## 7.8 Certificate management
+
+Admin can:
+
+- Upload certificates.
+- Edit certificate metadata.
+- Add verification URLs.
+- Add issue dates.
+- Add expiry dates.
+- Add credential IDs.
+- Link skills.
+- Feature certificates.
+- Set visibility.
+- Delete or archive certificates.
+
+## 7.9 Skill management
+
+Admin can:
+
+- Add skill.
+- Edit skill.
+- Remove skill.
+- Assign category.
+- Assign related projects.
+- Assign related experience.
+- Set optional proficiency.
+- Enable/disable publication.
+- Reorder skills.
+
+## 7.10 Website visual management
+
+Admin should control:
+
+- Hero text.
+- Hero images.
+- Backgrounds.
+- Accent colors.
+- Typography settings.
+- Project collections.
+- Section order.
+- Section visibility.
+- Navigation.
+- Intro animation.
+- Profile selection.
+- Animation intensity.
+- 3D effects.
+- Mobile effects.
+
+Provide a preview before publishing.
+
+## 7.11 Admin account management
+
+Owner must be able to:
+
+- Change admin email.
+- Change password.
+- Change display name.
+- Enable MFA.
+- Disable MFA after proper reauthentication.
+- View active sessions.
+- Revoke sessions.
+- Change recovery settings.
+- Manage authorized admin users.
+
+Changing the admin email or password must require reauthentication.
+
+Email changes must be verified.
+
+Password changes must invalidate appropriate existing sessions.
+
+Do not expose existing passwords.
+
+---
+
+# PART 8 — AI API PROVIDER MANAGEMENT
+
+Create:
+
+Admin → AI Settings → Providers.
+
+I must be able to change the AI provider without modifying source code.
+
+Support:
+
+- Provider name.
+- API base URL.
+- API key.
+- Model name.
+- Temperature.
+- Maximum tokens.
+- Timeout.
+- Rate limits.
+- Embedding provider.
+- Embedding model.
+- Active provider.
+- Fallback provider.
+
+Potential providers:
+
+- Groq.
+- OpenAI-compatible APIs.
+- Hugging Face inference.
+- Other compatible providers.
+
+Features:
+
+- Add provider.
+- Edit provider.
+- Delete provider.
+- Test connection.
+- Test model response.
+- Set active provider.
+- Set fallback.
+- Monitor errors.
+- View usage metadata.
+- Configure system behavior.
+
+The admin can switch the provider at runtime.
+
+API keys must:
+
+- Be encrypted at rest.
+- Never appear in frontend responses.
+- Never be logged.
+- Never be returned in full after saving.
+- Be accessible only to authorized backend processes.
+
+Do not store secrets in localStorage.
+
+Do not commit secrets into Git.
+
+---
+
+# PART 9 — ADMIN AI KNOWLEDGE MANAGEMENT
+
+Build a dedicated knowledge management interface.
+
+Admin can:
+
+- View indexed content.
+- Add knowledge documents.
+- Remove outdated documents.
+- Re-index selected documents.
+- Rebuild embeddings.
+- View indexing status.
+- View errors.
+- Preview retrieved chunks.
+- Test AI answers.
+- See which sources support an answer.
+
+Knowledge sources:
+
+- About page.
+- Experience.
+- Projects.
+- Certificates.
+- Skills.
+- Education.
+- Resume.
+- Approved documents.
+
+Private admin files must never enter the public AI knowledge base by default.
+
+Provide separate public and private knowledge scopes.
+
+Default all uploaded employment evidence and sensitive documents to private.
+
+---
+
+# PART 10 — VISUAL DESIGN AND ANIMATION ENGINE
+
+This is a major requirement.
+
+The website must be genuinely animated, smooth and cinematic.
+
+Use the following technologies where appropriate.
+
+Frontend:
+
+- Next.js.
+- React.
+- TypeScript.
+- Tailwind CSS.
+- shadcn/ui.
+- Lucide React.
+
+Animations:
+
+- GSAP.
+- GSAP ScrollTrigger.
+- Motion for React.
+- Lenis.
+
+3D:
+
+- Three.js.
+- React Three Fiber.
+- Drei.
+
+Advanced graphics:
+
+- WebGL.
+- GLSL shaders.
+
+Diagrams:
+
+- React Flow.
+- SVG.
+
+Charts:
+
+- Recharts.
+
+## 10.1 Animation requirements
+
+Implement:
+
+- Cinematic opening animation.
+- Animated logo.
+- Animated typography.
+- Profile card selection effects.
+- Smooth page transitions.
+- Horizontal project carousels.
+- Scroll-triggered reveals.
+- Parallax.
+- 3D card interactions.
+- Subtle particle systems.
+- Background movement.
+- Project preview animations.
+- Animated technical diagrams.
+- Smooth modal transitions.
+- Animated AI chat.
+- Loading skeletons.
+- Micro-interactions.
+
+Use GSAP for complex coordinated timelines.
+
+Use Motion for React component transitions.
+
+Use Lenis for smooth scrolling.
+
+Use Three.js selectively for special visual scenes.
+
+Do not use multiple libraries to animate the same element unnecessarily.
+
+## 10.2 Three-dimensional hero
+
+Create a tasteful interactive 3D experience.
+
+Potential elements:
+
+- Abstract digital environment.
+- Floating geometric shapes.
+- Subtle particle movement.
+- Interactive depth.
+- Mouse-responsive camera movement.
+- Animated lighting.
+
+Avoid generic AI robot imagery.
+
+The hero must remain professional.
+
+## 10.3 Smooth scrolling
+
+Implement smooth scrolling with Lenis where appropriate.
+
+Ensure:
+
+- Normal browser navigation works.
+- Anchor navigation works.
+- Keyboard navigation works.
+- Reduced motion is respected.
+- Mobile touch scrolling is not disrupted.
+
+## 10.4 Responsive design
+
+Desktop:
+
+Full cinematic experience.
+
+Tablet:
+
+Simplified effects and responsive content.
+
+Mobile:
+
+Touch-friendly interface, reduced 3D complexity, optimized assets and readable layouts.
+
+Do not merely shrink the desktop design.
+
+## 10.5 Accessibility
+
+Implement:
+
+- Semantic HTML.
+- Keyboard navigation.
+- Visible focus states.
+- Accessible forms.
+- Screen reader labels.
+- Sufficient contrast.
+- Reduced motion.
+- Accessible carousels.
+- Proper modal focus management.
+
+---
+
+# PART 11 — TECHNOLOGY ARCHITECTURE
+
+Use this architecture.
+
+## Frontend
+
+Next.js + React + TypeScript.
+
+Tailwind CSS.
+
+shadcn/ui.
+
+GSAP.
+
+Motion.
+
+Lenis.
+
+Three.js / React Three Fiber.
+
+React Flow.
+
+Recharts.
+
+## Backend
+
+Python.
+
+FastAPI.
+
+Pydantic.
+
+SQLAlchemy 2.
+
+Alembic.
+
+REST APIs.
+
+WebSockets where needed.
+
+Background tasks.
+
+## Database
+
+PostgreSQL.
+
+pgvector for vector search.
+
+Redis for caching, rate limiting and background task support.
+
+## AI
+
+Provider abstraction.
+
+LLM APIs.
+
+RAG.
+
+Embeddings.
+
+Semantic search.
+
+Conversation management.
+
+## Storage
+
+Private object storage for documents and sensitive uploads.
+
+Public optimized storage for approved images.
+
+Signed URLs for private files.
+
+## Deployment
+
+Docker.
+
+Docker Compose for local development.
+
+Nginx or suitable reverse proxy.
+
+Production environment variables.
+
+Database migrations.
+
+Automated backups.
+
+Health checks.
+
+Structured logs.
+
+---
+
+# PART 12 — DATABASE DESIGN
+
+Design a normalized, maintainable database.
+
+Include appropriate models for:
+
+- Admin users.
+- Roles.
+- Permissions.
+- Admin sessions.
+- MFA settings.
+- Audit logs.
+- Personal profile.
+- Companies.
+- Experience entries.
+- Education.
+- Skills.
+- Skill categories.
+- Projects.
+- Project categories.
+- Project technologies.
+- Project images.
+- Project architecture.
+- Certificates.
+- Resume files.
+- Social links.
+- Website sections.
+- Website settings.
+- AI providers.
+- Encrypted secrets.
+- AI conversations.
+- AI messages.
+- Knowledge documents.
+- Knowledge chunks.
+- Embeddings.
+- Recruiter contacts.
+- Recruiter conversations.
+- Recruiter messages.
+- Email delivery records.
+- GitHub integrations.
+- GitHub repositories.
+- File metadata.
+- Notifications.
+
+Use proper:
+
+- Foreign keys.
+- Indexes.
+- Constraints.
+- Timestamps.
+- Soft deletion where appropriate.
+- Publication status.
+- Visibility controls.
+- Audit trails.
+
+Use a company table and separate experience entries so multiple positions can belong to one company.
+
+Avoid unnecessary duplication.
+
+Support transactional operations.
+
+---
+
+# PART 13 — FASTAPI BACKEND STRUCTURE
+
+Use a clean modular architecture.
+
+Suggested structure:
+
+backend/
+
+    app/
+
+        main.py
+
+        core/
+
+            config.py
+            security.py
+            permissions.py
+            encryption.py
+            database.py
+            logging.py
+
+        api/
+
+            v1/
+
+                router.py
+
+                auth/
+                profile/
+                experience/
+                education/
+                projects/
+                skills/
+                certificates/
+                resume/
+                github/
+                recruiter/
+                conversations/
+                email/
+                ai/
+                knowledge/
+                admin/
+                settings/
+                uploads/
+
+        models/
+
+        schemas/
+
+        repositories/
+
+        services/
+
+        integrations/
+
+            llm/
+            github/
+            smtp/
+            embeddings/
+            storage/
+
+        tasks/
+
+        middleware/
+
+        tests/
+
+    alembic/
+
+    Dockerfile
+
+    requirements.txt
+
+Frontend structure:
+
+frontend/
+
+    app/
+
+        page.tsx
+
+        about/
+
+        projects/
+
+        experience/
+
+        certificates/
+
+        skills/
+
+        contact/
+
+        recruiter/
+
+        secure-admin/
+
+    components/
+
+        cinematic/
+        hero/
+        profile-selector/
+        carousels/
+        projects/
+        experience/
+        certificates/
+        skills/
+        ai-chat/
+        contact/
+        admin/
+        ui/
+
+    hooks/
+
+    lib/
+
+    services/
+
+    types/
+
+    styles/
+
+Use clear separation of responsibilities.
+
+Do not put the entire application into a single file.
+
+Do not put business logic inside frontend components.
+
+Use typed API contracts.
+
+---
+
+# PART 14 — SECURITY REQUIREMENTS
+
+Security must be implemented, not merely described.
+
+Implement:
+
+1. Argon2id password hashing.
+2. Secure server-side sessions.
+3. HttpOnly cookies.
+4. Secure and SameSite cookie settings.
+5. CSRF protection.
+6. Strict CORS configuration.
+7. Server-side RBAC.
+8. Permission checks on every admin endpoint.
+9. Login throttling.
+10. Rate limiting.
+11. Account recovery.
+12. MFA.
+13. Input validation.
+14. Output encoding.
+15. SQL injection protection.
+16. XSS protection.
+17. SSRF protection for configurable integrations.
+18. File upload validation.
+19. MIME and file signature validation.
+20. File size limits.
+21. Secure secret encryption.
+22. Audit logs.
+23. Security headers.
+24. Session invalidation.
+25. Database backup and recovery.
+
+For API provider URLs, prevent requests to localhost, private IP ranges, cloud metadata endpoints and other prohibited internal network destinations.
+
+Prevent arbitrary file uploads from becoming executable.
+
+Protect the AI from prompt injection and private-data disclosure.
+
+Add security tests.
+
+Do not rely on obscure URLs as security.
+
+Do not create a public admin registration endpoint.
+
+Do not include default passwords.
+
+---
+
+# PART 15 — SEO AND RECRUITER EXPERIENCE
+
+Implement:
+
+- SEO-friendly pages.
+- Open Graph metadata.
+- Social sharing images.
+- Sitemap.
+- Robots.txt.
+- Canonical URLs.
+- Structured data where appropriate.
+- Search-friendly project pages.
+- Fast page loading.
+- Accessible content.
+
+Create clear recruiter actions:
+
+VIEW EXPERIENCE.
+
+VIEW PROJECTS.
+
+DOWNLOAD RESUME.
+
+ASK ABDULLAH AI.
+
+CONTACT ABDULLAH.
+
+The recruiter should be able to find important information within seconds.
+
+Do not force a recruiter to complete profile selection or animations before accessing the CV.
+
+---
+
+# PART 16 — PERFORMANCE AND QUALITY
+
+The platform must be visually impressive without becoming slow.
+
+Implement:
+
+- Next.js code splitting.
+- Lazy loading.
+- Optimized images.
+- WebP/AVIF.
+- Dynamic imports.
+- Lazy-loaded 3D scenes.
+- GPU-friendly transforms.
+- Animation cleanup.
+- Efficient database queries.
+- Pagination.
+- Caching.
+- Background processing.
+- Proper loading states.
+- Error boundaries.
+- Retry handling where appropriate.
+
+Target excellent Core Web Vitals.
+
+Aim for:
+
+- Lighthouse performance: 90+ where practical.
+- Accessibility: 95+.
+- SEO: 95+.
+- Best practices: 95+.
+
+These are targets, not claims. Measure the finished application and report actual scores.
+
+Respect prefers-reduced-motion.
+
+---
+
+# PART 17 — TESTING
+
+Create actual automated tests.
+
+## Backend
+
+Test:
+
+- Authentication.
+- Authorization.
+- Admin role restrictions.
+- Password changes.
+- Session management.
+- Project CRUD.
+- Experience CRUD.
+- Certificate CRUD.
+- File uploads.
+- AI provider configuration.
+- AI knowledge synchronization.
+- SMTP delivery.
+- Recruiter messaging.
+- Rate limiting.
+- Input validation.
+- Security boundaries.
+
+## Frontend
+
+Test:
+
+- Landing page.
+- Profile selection.
+- Project browsing.
+- Project details.
+- Experience pages.
+- Certificate preview.
+- AI chat.
+- Contact form.
+- Admin login.
+- Admin dashboard.
+- CRUD workflows.
+- Mobile navigation.
+
+## End-to-end
+
+Verify:
+
+1. Recruiter visits website.
+2. Recruiter explores a project.
+3. Recruiter asks Abdullah AI about the project.
+4. AI answers using verified information.
+5. Recruiter submits a message.
+6. Admin receives notification.
+7. Admin replies.
+8. Recruiter receives email.
+9. Recruiter can continue the conversation through the configured inbound email workflow.
+
+Verify unauthorized users cannot access admin data.
+
+Verify API keys are never returned to public clients.
+
+---
+
+# PART 18 — DEVELOPMENT AND DELIVERY WORKFLOW
+
+Do not try to impress me with a static homepage while leaving the rest of the application unfinished.
+
+Build the complete system in structured phases.
+
+### PHASE 0 — Repository inspection and planning
+
+Inspect available GitHub repositories and the supplied reference files.
+
+Create:
+
+- Architecture document.
+- Database schema.
+- Project structure.
+- API specification.
+- Security plan.
+- Implementation roadmap.
+
+Identify missing information.
+
+Do not invent it.
+
+### PHASE 1 — Project foundation
+
+Set up:
+
+- Next.js.
+- FastAPI.
+- PostgreSQL.
+- Redis.
+- Docker.
+- Environment configuration.
+- Database migrations.
+- Logging.
+- Health checks.
+
+### PHASE 2 — Cinematic public frontend
+
+Build:
+
+- Introduction.
+- Profile selection.
+- Home.
+- Navigation.
+- Project collections.
+- Project details.
+- Skills.
+- About.
+- Experience.
+- Education.
+- Certificates.
+- Contact.
+
+Implement actual animations and responsiveness.
+
+### PHASE 3 — Backend and content management
+
+Implement:
+
+- Database models.
+- API routes.
+- Authentication.
+- Profile APIs.
+- Project APIs.
+- Experience APIs.
+- Certificate APIs.
+- Skill APIs.
+- File storage.
+
+### PHASE 4 — Secure admin CMS
+
+Build all admin modules.
+
+Implement:
+
+- Admin login.
+- RBAC.
+- Admin dashboard.
+- Content editing.
+- Project management.
+- Experience management.
+- Certificate management.
+- Theme management.
+- Settings management.
+- Audit logs.
+
+### PHASE 5 — AI recruiter
+
+Implement:
+
+- LLM providers.
+- Provider switching.
+- RAG.
+- Embeddings.
+- pgvector.
+- Knowledge management.
+- Conversation storage.
+- Streaming.
+- Prompt injection protection.
+- AI testing.
+
+### PHASE 6 — Recruiter communication
+
+Implement:
+
+- Contact forms.
+- Email notifications.
+- SMTP settings.
+- Two-way messaging.
+- Admin replies.
+- Inbound email integration.
+- Message management.
+
+### PHASE 7 — GitHub integration
+
+Implement:
+
+- Repository synchronization.
+- Project discovery.
+- Admin approval.
+- Project publishing.
+- Metadata refresh.
+
+### PHASE 8 — Security and quality assurance
+
+Run:
+
+- Backend tests.
+- Frontend tests.
+- End-to-end tests.
+- Security tests.
+- Dependency checks.
+- Performance tests.
+- Accessibility tests.
+
+Fix discovered issues.
+
+### PHASE 9 — Production deployment
+
+Create:
+
+- Production Docker configuration.
+- Environment variable documentation.
+- Database migration procedure.
+- Admin bootstrap instructions.
+- Backup procedure.
+- Deployment documentation.
+- Monitoring and health checks.
+- Rollback instructions.
+
+---
+
+# PART 19 — ADMIN CONFIGURATION EXPERIENCE
+
+The admin dashboard must be understandable without programming knowledge.
+
+Use forms, dropdowns, file upload controls, visual previews and confirmation dialogs.
+
+I must be able to manage almost the entire portfolio without editing source code.
+
+Examples:
+
+If I want to change my description:
+
+Admin → About → Edit → Save → Publish.
+
+If I want to add a project:
+
+Admin → Projects → Add Project → Fill Details → Upload Images → Preview → Publish.
+
+If I want to change my AI provider:
+
+Admin → AI Settings → Providers → Select Provider → Enter API Key → Test → Save → Activate.
+
+If I want to change SMTP:
+
+Admin → Email Settings → Update SMTP → Test Email → Save.
+
+If I want to change my admin password:
+
+Admin → Security → Change Password → Reauthenticate → Save.
+
+If I want to update AI knowledge:
+
+Admin → AI Knowledge → Sync Knowledge → View Status.
+
+All of these workflows must be functional.
+
+---
+
+# PART 20 — STRICT RULES
+
+1. Never invent professional achievements.
+2. Never invent employment history.
+3. Never invent certificates.
+4. Never invent project results.
+5. Never invent GitHub functionality.
+6. Never fabricate AI model accuracy.
+7. Never expose private documents.
+8. Never expose API keys.
+9. Never create a public admin registration page.
+10. Never rely on frontend-only security.
+11. Never use fake database data in the final production experience.
+12. Never create non-functional buttons.
+13. Never leave important forms disconnected from the backend.
+14. Never claim a feature is complete without testing it.
+15. Never replace FastAPI with Node.js as the primary backend.
+16. Never make the frontend dependent on hardcoded portfolio content.
+17. Never allow the AI recruiter to invent answers.
+18. Never publish newly imported GitHub projects without approval.
+19. Never make the animations compromise accessibility or performance.
+20. Never deliver a frontend-only mockup.
+
+When something cannot be implemented because an API key, SMTP account, domain, certificate or other external resource is missing, implement the integration and clearly document the configuration required.
+
+Do not fabricate successful integration tests when credentials are unavailable.
+
+---
+
+# PART 21 — FINAL ACCEPTANCE CRITERIA
+
+The project is complete only when all of the following are verified.
+
+### Public experience
+
+- Cinematic introduction works.
+- Profile selection works.
+- All navigation works.
+- Projects are database-driven.
+- Project details work.
+- Experience is displayed correctly.
+- Skills are dynamically loaded.
+- Certificates are displayed correctly.
+- Resume can be downloaded.
+- Contact form works.
+- Mobile version works.
+- Animations are smooth.
+- SEO is implemented.
+
+### Admin
+
+- Admin authentication works.
+- Unauthorized access is blocked.
+- Password changes work.
+- Admin email changes work.
+- MFA works.
+- Project CRUD works.
+- Experience CRUD works.
+- Certificate CRUD works.
+- Skill management works.
+- Profile editing works.
+- Resume replacement works.
+- Theme settings work.
+- AI provider configuration works.
+- SMTP configuration works.
+- GitHub synchronization works.
+- Audit logs work.
+
+### AI recruiter
+
+- AI answers about Abdullah.
+- AI answers about projects.
+- AI answers about experience.
+- AI answers about skills.
+- AI uses updated knowledge.
+- AI refuses unsupported claims.
+- AI cannot expose private information.
+- Provider switching works.
+
+### Communication
+
+- Recruiters can submit messages.
+- Messages appear in admin.
+- Admin can reply.
+- Email notifications work when configured.
+- Recruiters receive replies.
+- Inbound replies work when configured.
+- Conversation history is maintained.
+
+### Production
+
+- Docker builds successfully.
+- Database migrations work.
+- Tests pass.
+- Security checks pass.
+- Environment secrets are protected.
+- Backups are documented.
+- Deployment instructions are complete.
+
+---
+
+# FINAL INSTRUCTION TO GENSPARK
+
+I want a portfolio that makes recruiters stop scrolling.
+
+The first impression must be cinematic and memorable.
+
+The project presentation must feel like a premium streaming platform.
+
+The technical sections must be clean, elegant and professional.
+
+The AI assistant must genuinely understand my professional background.
+
+The admin panel must give me complete control over my digital identity.
+
+The backend must be secure, modular, maintainable and production-oriented.
+
+Build the actual application, not just a design.
+
+Start by inspecting the supplied reference videos, GitHub repositories and certificates.
+
+Then create the architecture and implement the system.
+
+If there are missing credentials or information, build the relevant configuration interfaces and mark the integrations as awaiting configuration.
+
+Work through the implementation phases, test each feature, fix errors and maintain documentation.
+
+At the end, provide:
+
+1. Complete source code.
+2. Frontend and backend architecture.
+3. Database schema.
+4. API documentation.
+5. Admin setup instructions.
+6. Environment variable template without real secrets.
+7. Local development instructions.
+8. Docker deployment instructions.
+9. Testing report.
+10. Security report.
+11. Known limitations.
+12. List of features that are fully implemented versus awaiting configuration.
+
+**FINAL GOAL:**
+
+Create an extraordinary, cinematic, interactive and fully functional AI-powered professional portfolio for Abdullah Naveed, with a secure administrative control center and an intelligent AI recruiter that represents his real engineering capabilities.
