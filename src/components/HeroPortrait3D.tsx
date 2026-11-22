@@ -126,6 +126,9 @@ export function HeroPortrait3D({
               src={avatarUrl}
               alt={`${fullName} — Artificial Intelligence Engineer`}
               referrerPolicy="no-referrer"
+              loading={variant === 'hero' ? 'eager' : 'lazy'}
+              fetchPriority={variant === 'hero' ? 'high' : 'auto'}
+              decoding="async"
               onError={() => setImgFailed(true)}
               className="h-full w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             />

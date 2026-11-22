@@ -438,6 +438,8 @@ export function initializeDatabase(): void {
   ensureColumn('projects', 'limitations', `TEXT NOT NULL DEFAULT ''`);
   ensureColumn('projects', 'companion_group', `TEXT NOT NULL DEFAULT ''`);
   ensureColumn('projects', 'live_demo_verified', `INTEGER NOT NULL DEFAULT 0`);
+  ensureColumn('projects', 'preview_video_url', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('projects', 'video_description', `TEXT NOT NULL DEFAULT ''`);
 
   ensureColumn('skills', 'description', `TEXT NOT NULL DEFAULT ''`);
   ensureColumn('skills', 'what_it_does', `TEXT NOT NULL DEFAULT ''`);
@@ -457,6 +459,10 @@ export function initializeDatabase(): void {
   ensureColumn('theme_settings', 'rag_top_k', `INTEGER NOT NULL DEFAULT 6`);
   ensureColumn('theme_settings', 'rag_chunk_size', `INTEGER NOT NULL DEFAULT 800`);
   ensureColumn('theme_settings', 'rag_hybrid_weight', `REAL NOT NULL DEFAULT 0.65`);
+  ensureColumn('theme_settings', 'dvd_transition_enabled', `INTEGER NOT NULL DEFAULT 1`);
+  ensureColumn('theme_settings', 'video_autoplay_preview', `INTEGER NOT NULL DEFAULT 1`);
+  ensureColumn('theme_settings', 'hero_montage_enabled', `INTEGER NOT NULL DEFAULT 1`);
+  ensureColumn('theme_settings', 'hero_montage_json', `TEXT NOT NULL DEFAULT '[]'`);
 
   ensureColumn('github_repos', 'repo_status', `TEXT NOT NULL DEFAULT 'Verified'`);
   ensureColumn('github_repos', 'companion_group', `TEXT NOT NULL DEFAULT ''`);

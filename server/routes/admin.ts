@@ -1056,6 +1056,48 @@ adminRouter.post('/projects/upload-image', adminUpload.single('file'), (req: Aut
   res.json({ url });
 });
 
+adminRouter.post('/projects/upload-video', mediaUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Project video file required (MP4 or WebM, max 40MB).' });
+  if (!['video/mp4', 'video/webm'].includes(req.file.mimetype)) {
+    return res.status(400).json({ error: 'Unsupported video format. Allowed: MP4, WebM.' });
+  }
+  if (!validateFileMagicBytes(req.file.buffer, req.file.mimetype)) {
+    return res.status(400).json({ error: 'Uploaded project video signature failed validation.' });
+  }
+  const ext = req.file.mimetype === 'video/webm' ? '.webm' : '.mp4';
+  const storedName = `projvid_${Date.now()}_${generateSecureToken(4)}${ext}`;
+  const targetPath = path.resolve(PUBLIC_UPLOADS_DIR, storedName);
+  if (!targetPath.startsWith(PUBLIC_UPLOADS_DIR + path.sep)) {
+    return res.status(400).json({ error: 'Invalid upload destination.' });
+  }
+  fs.writeFileSync(targetPath, req.file.buffer);
+  const url = `/uploads/public/${storedName}`;
+  db.prepare(
+    `INSERT INTO uploaded_files (filename, original_name, mime_type, size_bytes, scope, path_key, uploaded_by) VALUES (?, ?, ?, ?, 'public', ?, ?)`
+  ).run(storedName, req.file.originalname.slice(0, 120), req.file.mimetype, req.file.size, targetPath, req.adminUser!.email);
+  logAudit(req.adminUser!.email, 'UPLOAD_PROJECT_VIDEO', 'project', storedName, `${req.file.mimetype} (${Math.round(req.file.size / 1024)} KB)`, req.ip || '');
+  res.json({ url, mimeType: req.file.mimetype, sizeBytes: req.file.size });
+});
+
+adminRouter.get('/media-library', (_req, res) => {
+  const results: Array<{ name: string; url: string; kind: 'video' | 'image'; source: string }> = [];
+  const scanDir = (dirPath: string, urlPrefix: string, source: string) => {
+    if (!fs.existsSync(dirPath)) return;
+    for (const entry of fs.readdirSync(dirPath)) {
+      const lower = entry.toLowerCase();
+      if (lower.endsWith('.mp4') || lower.endsWith('.webm')) {
+        results.push({ name: entry, url: `${urlPrefix}/${entry}`, kind: 'video', source });
+      } else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
+        results.push({ name: entry, url: `${urlPrefix}/${entry}`, kind: 'image', source });
+      }
+    }
+  };
+  scanDir(PUBLIC_UPLOADS_DIR, '/uploads/public', 'Uploaded');
+  scanDir(path.resolve(process.cwd(), 'public', 'assets', 'aistudio'), '/assets/aistudio', 'Studio Assets');
+  scanDir(path.resolve(process.cwd(), 'src', 'assets', 'images'), '/src/assets/images', 'Project Artwork');
+  res.json(results);
+});
+
 adminRouter.post('/projects', (req: AuthedRequest, res) => {
   const b = req.body || {};
   const baseSlug = String(b.slug || b.title || 'project')
@@ -1071,9 +1113,10 @@ adminRouter.post('/projects', (req: AuthedRequest, res) => {
         slug, title, category, tagline, overview, problem_statement, solution_summary,
         architecture_notes, frontend_stack, backend_stack, database_stack, ai_models_stack,
         rag_pipeline_notes, technologies_json, features_json, challenges_json, verified_results_json,
-        cover_image, github_url, live_url, github_repo_name, company_id, is_featured, is_published, sort_order,
+        cover_image, preview_video_url, video_description, github_url, live_url, github_repo_name,
+        company_id, is_featured, is_published, sort_order,
         status, limitations, companion_group, live_demo_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       slug,
@@ -1094,6 +1137,8 @@ adminRouter.post('/projects', (req: AuthedRequest, res) => {
       JSON.stringify(Array.isArray(b.challenges) ? b.challenges : []),
       JSON.stringify(Array.isArray(b.verified_results) ? b.verified_results : []),
       String(b.cover_image || '/src/assets/images/project_omnisynth_cover_1795329338795.jpg'),
+      String(b.preview_video_url || '').slice(0, 500),
+      String(b.video_description || '').slice(0, 500),
       String(b.github_url || ''),
       String(b.live_url || ''),
       String(b.github_repo_name || ''),
@@ -1118,7 +1163,8 @@ adminRouter.put('/projects/:id', (req: AuthedRequest, res) => {
       title = ?, category = ?, tagline = ?, overview = ?, problem_statement = ?, solution_summary = ?,
       architecture_notes = ?, frontend_stack = ?, backend_stack = ?, database_stack = ?, ai_models_stack = ?,
       rag_pipeline_notes = ?, technologies_json = ?, features_json = ?, challenges_json = ?, verified_results_json = ?,
-      cover_image = ?, github_url = ?, live_url = ?, is_featured = ?, is_published = ?, is_archived = ?, sort_order = ?,
+      cover_image = ?, preview_video_url = ?, video_description = ?, github_url = ?, live_url = ?,
+      is_featured = ?, is_published = ?, is_archived = ?, sort_order = ?,
       status = ?, limitations = ?, companion_group = ?, live_demo_verified = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -1139,6 +1185,8 @@ adminRouter.put('/projects/:id', (req: AuthedRequest, res) => {
     JSON.stringify(Array.isArray(b.challenges) ? b.challenges : []),
     JSON.stringify(Array.isArray(b.verified_results) ? b.verified_results : []),
     String(b.cover_image || ''),
+    String(b.preview_video_url || '').slice(0, 500),
+    String(b.video_description || '').slice(0, 500),
     String(b.github_url || ''),
     String(b.live_url || ''),
     b.is_featured ? 1 : 0,
@@ -1725,6 +1773,7 @@ adminRouter.get('/theme', (_req, res) => {
     section_order: JSON.parse(row.section_order_json || '[]'),
     hidden_sections: JSON.parse(row.hidden_sections_json || '[]'),
     profile_backgrounds: JSON.parse(row.profile_backgrounds_json || '{}'),
+    hero_montage: JSON.parse(row.hero_montage_json || '[]'),
   });
 });
 
@@ -1764,6 +1813,7 @@ adminRouter.put('/theme', (req: AuthedRequest, res) => {
       bg_mode = ?, bg_video_url = ?, bg_mobile_video_url = ?, bg_poster_url = ?,
       bg_image_url = ?, bg_gradient_css = ?, bg_overlay_opacity = ?, profile_backgrounds_json = ?,
       rag_top_k = ?, rag_chunk_size = ?, rag_hybrid_weight = ?,
+      dvd_transition_enabled = ?, video_autoplay_preview = ?, hero_montage_enabled = ?, hero_montage_json = ?,
       updated_at = datetime('now')
     WHERE id = 1
   `).run(
@@ -1772,9 +1822,9 @@ adminRouter.put('/theme', (req: AuthedRequest, res) => {
     b.intro_enabled ? 1 : 0,
     b.profile_selector_enabled ? 1 : 0,
     b.three_d_enabled ? 1 : 0,
-    String(b.animation_intensity || 'cinematic'),
-    String(b.hero_cta_primary || 'Explore My Work'),
-    String(b.hero_cta_secondary || 'Meet Abdullah AI'),
+    ['cinematic', 'balanced', 'minimal'].includes(b.animation_intensity) ? b.animation_intensity : 'cinematic',
+    String(b.hero_cta_primary || 'Explore Projects'),
+    String(b.hero_cta_secondary || 'Ask Abdullah AI'),
     JSON.stringify(Array.isArray(b.section_order) ? b.section_order : ['projects', 'skills', 'experience', 'credentials', 'about', 'contact']),
     JSON.stringify(Array.isArray(b.hidden_sections) ? b.hidden_sections : []),
     String(b.seo_title || ''),
@@ -1789,7 +1839,11 @@ adminRouter.put('/theme', (req: AuthedRequest, res) => {
     JSON.stringify(b.profile_backgrounds && typeof b.profile_backgrounds === 'object' ? b.profile_backgrounds : {}),
     Math.min(12, Math.max(3, Number(b.rag_top_k || 6))),
     Math.min(2000, Math.max(350, Number(b.rag_chunk_size || 800))),
-    Math.min(0.95, Math.max(0.2, Number(b.rag_hybrid_weight ?? 0.65)))
+    Math.min(0.95, Math.max(0.2, Number(b.rag_hybrid_weight ?? 0.65))),
+    b.dvd_transition_enabled === 0 || b.dvd_transition_enabled === false ? 0 : 1,
+    b.video_autoplay_preview === 0 || b.video_autoplay_preview === false ? 0 : 1,
+    b.hero_montage_enabled === 0 || b.hero_montage_enabled === false ? 0 : 1,
+    JSON.stringify(Array.isArray(b.hero_montage) ? b.hero_montage.slice(0, 12) : [])
   );
   logAudit(req.adminUser!.email, 'UPDATE_THEME', 'theme', '1', `Mode: ${b.bg_mode || 'default'}`, req.ip || '');
   res.json({ ok: true });

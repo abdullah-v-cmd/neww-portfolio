@@ -3,21 +3,27 @@ import Lenis from 'lenis';
 import { motion } from 'motion/react';
 import {
   ArrowUpRight,
+  ChevronDown,
   Download,
   FileCheck2,
   Menu,
   MessageSquare,
   Play,
   RotateCcw,
+  User,
   X,
 } from 'lucide-react';
 import { PortfolioPayload, ProfileMode, ProjectItem } from './types/portfolio';
 import { HeroCanvas3D } from './components/HeroCanvas3D';
 import { HeroPortrait3D } from './components/HeroPortrait3D';
+import { HeroMontageBackdrop } from './components/HeroMontageBackdrop';
 import { VideoBackgroundLayer } from './components/VideoBackgroundLayer';
 import { CinematicIntro } from './components/CinematicIntro';
+import { MonogramLogo } from './components/MonogramLogo';
+import { MotionReveal } from './components/MotionReveal';
 import { FullStorySection } from './components/FullStorySection';
 import { ProjectCarousel } from './components/ProjectCarousel';
+import { ProjectOpeningTransition } from './components/ProjectOpeningTransition';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
 import { CvRequestModal } from './components/CvRequestModal';
 import { SkillsUniverse } from './components/SkillsUniverse';
@@ -35,6 +41,15 @@ const CONTINUE_EPISODES = [
   { id: 'skills', episode: 'Episode 03', title: 'Skill Universe', subtitle: 'Interactive Graph' },
   { id: 'projects', episode: 'Episode 04', title: 'Featured Systems', subtitle: 'Originals & Rails' },
   { id: 'credentials', episode: 'Episode 05', title: 'Certificates', subtitle: 'Verified Honors' },
+];
+
+const NAV_ITEMS = [
+  { id: 'projects', label: 'Projects' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'experience', label: 'Experience' },
+  { id: 'credentials', label: 'Credentials' },
+  { id: 'about', label: 'About Me' },
+  { id: 'contact', label: 'Contact' },
 ];
 
 const PROFILE_EXPERIENCE_COPY: Record<
@@ -72,10 +87,14 @@ export default function App() {
     );
   });
   const [profileMode, setProfileMode] = useState<ProfileMode>('explore');
+  const [openingProject, setOpeningProject] = useState<ProjectItem | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('top');
 
   const fetchPortfolio = useCallback(async () => {
     try {
@@ -105,13 +124,43 @@ export default function App() {
     fetchPortfolio();
   }, [fetchPortfolio]);
 
+  // Navbar transparency-to-solid transition
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 36);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Active section spy
+  useEffect(() => {
+    if (routePath.startsWith('/secure-admin') || !portfolio) return;
+    const ids = ['top', 'story', 'projects', 'skills', 'experience', 'credentials', 'about', 'contact'];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.target.id) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-35% 0px -50% 0px', threshold: 0.01 }
+    );
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [routePath, portfolio]);
+
+  // Smooth scrolling via Lenis (disabled automatically for reduced motion or admin)
   useEffect(() => {
     if (routePath.startsWith('/secure-admin')) return;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
     const lenis = new Lenis({
-      duration: 1.05,
+      duration: 1.0,
       smoothWheel: true,
     });
 
@@ -135,8 +184,10 @@ export default function App() {
       const match = next.match(/^\/projects\/([^/]+)$/);
       if (match && portfolio) {
         const found = portfolio.projects.find((p) => p.slug === match[1]) || null;
+        setOpeningProject(null);
         setSelectedProject(found);
       } else {
+        setOpeningProject(null);
         setSelectedProject(null);
       }
     };
@@ -149,12 +200,35 @@ export default function App() {
     setRoutePath(path);
   };
 
-  const handleOpenProject = (proj: ProjectItem) => {
-    setSelectedProject(proj);
-    navigate(`/projects/${proj.slug}`);
-  };
+  const commitProjectModal = useCallback(
+    (proj: ProjectItem) => {
+      setOpeningProject(null);
+      setSelectedProject(proj);
+      navigate(`/projects/${proj.slug}`);
+    },
+    []
+  );
+
+  const handleOpenProject = useCallback(
+    (proj: ProjectItem) => {
+      const prefersReduced =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const dvdEnabled =
+        portfolio?.theme?.dvd_transition_enabled !== 0 &&
+        portfolio?.theme?.animation_intensity !== 'minimal';
+
+      if (prefersReduced || !dvdEnabled) {
+        commitProjectModal(proj);
+        return;
+      }
+      setOpeningProject(proj);
+    },
+    [portfolio?.theme?.dvd_transition_enabled, portfolio?.theme?.animation_intensity, commitProjectModal]
+  );
 
   const handleCloseProject = () => {
+    setOpeningProject(null);
     setSelectedProject(null);
     if (routePath.startsWith('/projects/')) {
       navigate('/');
@@ -261,138 +335,152 @@ export default function App() {
   })();
 
   const modeCopy = PROFILE_EXPERIENCE_COPY[profileMode];
+  const minimalMotion = theme?.animation_intensity === 'minimal';
+  const isCustomHeroVideoOrImage = theme?.bg_mode === 'video' || theme?.bg_mode === 'image';
 
   const renderSection = (key: string) => {
     if (hidden.has(key)) return null;
     switch (key) {
       case 'story':
         return (
-          <FullStorySection
-            key="story"
-            profile={profile}
-            experience={experience}
-            education={education}
-            projects={projects}
-            certificates={certificates}
-            onDownloadResume={handleResumeDownload}
-            onRequestCv={() => setCvModalOpen(true)}
-            onOpenAI={() => setAiChatOpen(true)}
-            onSelectProject={handleOpenProject}
-          />
+          <MotionReveal key="story" disabled={minimalMotion}>
+            <FullStorySection
+              profile={profile}
+              experience={experience}
+              education={education}
+              projects={projects}
+              certificates={certificates}
+              onDownloadResume={handleResumeDownload}
+              onRequestCv={() => setCvModalOpen(true)}
+              onOpenAI={() => setAiChatOpen(true)}
+              onSelectProject={handleOpenProject}
+            />
+          </MotionReveal>
         );
       case 'projects':
         return (
-          <ProjectCarousel
-            key="projects"
-            projects={projects}
-            profileMode={profileMode}
-            onSelectProject={handleOpenProject}
-          />
+          <MotionReveal key="projects" disabled={minimalMotion}>
+            <ProjectCarousel
+              projects={projects}
+              profileMode={profileMode}
+              videoAutoplayPreview={theme?.video_autoplay_preview !== 0}
+              onSelectProject={handleOpenProject}
+            />
+          </MotionReveal>
         );
       case 'skills':
         return (
-          <SkillsUniverse
-            key="skills"
-            categories={skillUniverse}
-            projects={projects}
-            experience={experience}
-            onSelectProject={handleOpenProject}
-          />
+          <MotionReveal key="skills" disabled={minimalMotion}>
+            <SkillsUniverse
+              categories={skillUniverse}
+              projects={projects}
+              experience={experience}
+              onSelectProject={handleOpenProject}
+            />
+          </MotionReveal>
         );
       case 'experience':
         return (
-          <ExperienceTimeline
-            key="experience"
-            companies={experience}
-            projects={projects}
-            onSelectProject={handleOpenProject}
-          />
+          <MotionReveal key="experience" disabled={minimalMotion}>
+            <ExperienceTimeline
+              companies={experience}
+              projects={projects}
+              onSelectProject={handleOpenProject}
+            />
+          </MotionReveal>
         );
       case 'credentials':
         return (
-          <CredentialsSection
-            key="credentials"
-            education={education}
-            certificates={certificates}
-          />
+          <MotionReveal key="credentials" disabled={minimalMotion}>
+            <CredentialsSection
+              education={education}
+              certificates={certificates}
+            />
+          </MotionReveal>
         );
       case 'about':
-        return <AboutSection key="about" profile={profile} />;
+        return (
+          <MotionReveal key="about" disabled={minimalMotion}>
+            <AboutSection profile={profile} />
+          </MotionReveal>
+        );
       case 'contact':
         return (
-          <div key="contact">
-            <section className="border-t border-zinc-900 bg-[#060608]">
-              <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
-                <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
-                  The Next Episode
-                </p>
-                <h2 className="mt-2 font-display text-5xl font-bold tracking-wide text-white uppercase sm:text-7xl">
-                  To Be Continued...
-                </h2>
-                <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
-                  Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
-                </p>
+          <MotionReveal key="contact" disabled={minimalMotion}>
+            <div>
+              <section className="border-t border-zinc-900 bg-[#060608]">
+                <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
+                  <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
+                    The Next Episode
+                  </p>
+                  <h2 className="mt-2 font-display text-5xl font-bold tracking-wide text-white uppercase sm:text-7xl">
+                    To Be Continued...
+                  </h2>
+                  <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
+                    Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
+                  </p>
 
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => scrollToSection('contact-form')}
-                    className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
-                  >
-                    <span>Let&apos;s Build</span>
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCvModalOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-md border border-[#e50914]/70 bg-[#e50914]/15 px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#e50914]/30 whitespace-nowrap shrink-0"
-                  >
-                    <FileCheck2 className="h-3.5 w-3.5 text-[#e50914]" />
-                    <span>Request Official CV</span>
-                  </button>
-                  {profile.github_url ? (
-                    <a
-                      href={profile.github_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection('contact-form')}
+                      className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
                     >
-                      <span>GitHub</span>
-                    </a>
-                  ) : null}
-                  {profile.linkedin_url ? (
-                    <a
-                      href={profile.linkedin_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                      <span>Let&apos;s Build</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCvModalOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-md border border-[#e50914]/70 bg-[#e50914]/15 px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#e50914]/30 whitespace-nowrap shrink-0"
                     >
-                      <span>LinkedIn</span>
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIntroDismissed(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 px-4 py-2.5 text-xs font-medium text-slate-300 transition-colors hover:border-zinc-600 hover:text-white whitespace-nowrap shrink-0"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>Replay Intro</span>
-                  </button>
+                      <FileCheck2 className="h-3.5 w-3.5 text-[#e50914]" />
+                      <span>Request Official CV</span>
+                    </button>
+                    {profile.github_url ? (
+                      <a
+                        href={profile.github_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                      >
+                        <span>GitHub</span>
+                      </a>
+                    ) : null}
+                    {profile.linkedin_url ? (
+                      <a
+                        href={profile.linkedin_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                      >
+                        <span>LinkedIn</span>
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIntroDismissed(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 px-4 py-2.5 text-xs font-medium text-slate-300 transition-colors hover:border-zinc-600 hover:text-white whitespace-nowrap shrink-0"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      <span>Replay Intro</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            <div id="contact-form">
-              <ContactSection
-                profile={profile}
-                onOpenAI={() => setAiChatOpen(true)}
-                onRequestCv={() => setCvModalOpen(true)}
-              />
+              <div id="contact-form">
+                <ContactSection
+                  profile={profile}
+                  onOpenAI={() => setAiChatOpen(true)}
+                  onRequestCv={() => setCvModalOpen(true)}
+                />
+              </div>
             </div>
-          </div>
+          </MotionReveal>
         );
       default:
         return null;
@@ -400,7 +488,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060608] text-slate-100">
+    <div className="min-h-screen overflow-x-hidden bg-[#060608] text-slate-100">
       {!introDismissed && (theme?.intro_enabled || theme?.profile_selector_enabled) ? (
         <CinematicIntro
           showIntro={Boolean(theme?.intro_enabled)}
@@ -411,37 +499,49 @@ export default function App() {
         />
       ) : null}
 
-      {/* Strict 3-Zone Top Navigation Contract */}
-      <header className="sticky top-0 z-30 border-b border-zinc-900/90 bg-[#060608]/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-8 px-6 py-4 lg:px-10">
+      {/* Strict 3-Zone Top Navigation Contract — transparent over hero, solid frosted glass on scroll */}
+      <header
+        className={`fixed inset-x-0 top-0 z-30 border-b transition-all duration-300 ${
+          scrolled || mobileMenuOpen
+            ? 'border-zinc-900/95 bg-[#060608]/92 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.65)]'
+            : 'border-transparent bg-gradient-to-b from-[#060608]/85 via-[#060608]/45 to-transparent'
+        }`}
+      >
+        <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-6 px-6 py-3.5 lg:px-10">
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="font-display text-2xl font-bold tracking-wider text-white uppercase whitespace-nowrap shrink-0"
+            className="inline-flex items-center gap-3 font-display text-xl font-bold tracking-wider text-white uppercase whitespace-nowrap shrink-0 sm:text-2xl"
           >
-            {profile.full_name}
+            <MonogramLogo size="sm" />
+            <span>{profile.full_name}</span>
           </a>
 
-          <nav aria-label="Primary Navigation" className="hidden items-center gap-7 md:flex">
-            {[
-              { id: 'projects', label: 'Projects' },
-              { id: 'skills', label: 'Skills' },
-              { id: 'experience', label: 'Experience' },
-              { id: 'credentials', label: 'Credentials' },
-              { id: 'contact', label: 'Contact' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => scrollToSection(item.id)}
-                className="text-sm font-medium text-slate-300 underline-offset-8 transition-colors hover:text-white hover:underline whitespace-nowrap shrink-0"
-              >
-                {item.label}
-              </button>
-            ))}
+          <nav aria-label="Primary Navigation" className="hidden items-center gap-6 md:flex">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => scrollToSection(item.id)}
+                  aria-current={isActive ? 'location' : undefined}
+                  className={`relative py-1 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+                    isActive ? 'text-white' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className={`absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-transform duration-300 origin-left ${
+                      isActive ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </button>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -458,78 +558,82 @@ export default function App() {
               type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label="Toggle navigation menu"
-              className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-800 text-slate-300 md:hidden"
+              aria-expanded={mobileMenuOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-800 bg-[#0A0C12]/80 text-slate-300 md:hidden"
             >
               {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
-        {mobileMenuOpen ? (
-          <div className="border-t border-zinc-900 bg-[#0A0C11] px-6 py-4 md:hidden">
-            <div className="flex flex-col gap-3">
-              {[
-                { id: 'story', label: 'Full Story' },
-                { id: 'projects', label: 'Projects' },
-                { id: 'skills', label: 'Skills' },
-                { id: 'experience', label: 'Experience' },
-                { id: 'credentials', label: 'Credentials' },
-                { id: 'about', label: 'About' },
-                { id: 'contact', label: 'Contact' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => scrollToSection(item.id)}
-                  className="py-1.5 text-left text-sm font-medium text-slate-200"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+        {/* Animated Mobile Navigation Drawer */}
+        <div
+          className={`overflow-hidden border-t border-zinc-900 bg-[#080A10]/98 backdrop-blur-xl transition-all duration-300 md:hidden ${
+            mobileMenuOpen ? 'max-h-96 opacity-100' : 'pointer-events-none max-h-0 border-t-transparent opacity-0'
+          }`}
+        >
+          <div className="flex flex-col gap-1 px-6 py-4">
+            {[
+              { id: 'story', label: 'Full Story' },
+              ...NAV_ITEMS,
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => scrollToSection(item.id)}
+                className={`rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                  activeSection === item.id
+                    ? 'bg-blue-600/15 text-blue-300'
+                    : 'text-slate-200 hover:bg-zinc-900/60'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-        ) : null}
+        </div>
       </header>
 
-      {/* Hero Section with VideoBackgroundLayer + Ambient 3D Canvas */}
+      {/* Main Content */}
       <main id="top">
-        <section className="relative overflow-hidden border-b border-zinc-900">
-          {profile.cover_url && (!theme?.bg_mode || theme.bg_mode === 'default') ? (
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none">
-              <img
-                src={profile.cover_url}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="h-full w-full object-cover opacity-20"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#060608]/80 via-[#060608]/75 to-[#060608]" />
-            </div>
+        {/* Full-Screen Cinematic Streaming Hero */}
+        <section className="relative flex min-h-screen flex-col justify-between overflow-hidden border-b border-zinc-900 pt-20">
+          {!isCustomHeroVideoOrImage ? (
+            <HeroMontageBackdrop
+              theme={theme}
+              projects={projects}
+              onInspectProject={(slug) => {
+                const found = projects.find((p) => p.slug === slug);
+                if (found) handleOpenProject(found);
+              }}
+            />
           ) : null}
+
           <VideoBackgroundLayer theme={theme} profileMode={profileMode} />
           <HeroCanvas3D
             enabled={Boolean(theme?.three_d_enabled)}
-            accentColor={theme?.accent_color || '#e50914'}
+            accentColor={theme?.accent_color || '#3b82f6'}
           />
 
-          <div className="relative z-10 mx-auto max-w-[1360px] px-6 pb-14 pt-14 sm:pt-20 lg:px-10">
-            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
+          <div className="relative z-10 mx-auto my-auto w-full max-w-[1360px] px-6 py-8 lg:px-10">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
               <motion.div
-                initial={{ opacity: 0, y: 18 }}
+                initial={minimalMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col justify-between space-y-7 lg:col-span-7"
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col justify-between space-y-5 lg:col-span-7"
               >
-                <div className="space-y-4">
-                  <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
+                <div className="space-y-3.5">
+                  <p className="text-[11px] font-semibold tracking-[0.28em] text-blue-400 uppercase">
                     {modeCopy.eyebrow}
                   </p>
 
                   <div>
-                    <h1 className="font-display text-6xl font-bold leading-[0.94] tracking-tight text-white uppercase sm:text-7xl lg:text-8xl">
+                    <h1 className="font-display text-5xl font-bold leading-[0.94] tracking-tight text-white uppercase sm:text-7xl xl:text-8xl">
                       {profile.full_name}
                     </h1>
-                    <p className="mt-2 font-display text-2xl font-bold tracking-[0.14em] text-[#e50914] uppercase sm:text-3xl">
-                      {profile.subheadline}
+                    <p className="mt-2 font-display text-xl font-bold tracking-[0.12em] bg-gradient-to-r from-blue-400 via-purple-400 to-red-400 bg-clip-text text-transparent uppercase sm:text-2xl xl:text-3xl">
+                      AI/ML Engineer | Full-Stack Developer | GenAI Engineer
                     </p>
                   </div>
 
@@ -539,70 +643,65 @@ export default function App() {
                     {profile.availability_enabled ? ` · ${profile.availability_label}` : ''}
                   </p>
 
-                  <p className="max-w-2xl text-base leading-relaxed text-slate-300">
-                    {profile.headline}. {profile.bio_short}
+                  <p className="max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+                    {profile.bio_short}
                   </p>
 
                   <p className="text-xs text-slate-400">{modeCopy.summaryNote}</p>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    {profileMode === 'recruiter' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setCvModalOpen(true)}
-                          className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
-                        >
-                          <FileCheck2 className="h-4 w-4 text-[#e50914]" />
-                          <span>Request Official CV</span>
-                        </button>
-                        {profile.resume_url ? (
-                          <button
-                            type="button"
-                            onClick={handleResumeDownload}
-                            className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
-                          >
-                            <Download className="h-4 w-4" />
-                            <span>Public Resume PDF</span>
-                          </button>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => scrollToSection('projects')}
-                          className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
-                        >
-                          <Play className="h-4 w-4 fill-zinc-950" />
-                          <span>{theme?.hero_cta_primary || 'Explore Work'}</span>
-                        </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection('projects')}
+                      className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
+                    >
+                      <Play className="h-4 w-4 fill-zinc-950" />
+                      <span>Explore Projects</span>
+                    </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setCvModalOpen(true)}
-                          className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
-                        >
-                          <FileCheck2 className="h-4 w-4 text-[#e50914]" />
-                          <span>Request CV</span>
-                        </button>
-                      </>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection('about')}
+                      className="inline-flex items-center gap-2 rounded-md border border-blue-500/50 bg-blue-600/15 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600/30 whitespace-nowrap shrink-0"
+                    >
+                      <User className="h-4 w-4 text-blue-400" />
+                      <span>About Me</span>
+                    </button>
+
+                    {profileMode === 'recruiter' && profile.resume_url ? (
+                      <button
+                        type="button"
+                        onClick={handleResumeDownload}
+                        className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Resume PDF</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCvModalOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                      >
+                        <FileCheck2 className="h-4 w-4 text-[#e50914]" />
+                        <span>Request CV</span>
+                      </button>
                     )}
 
                     <button
                       type="button"
                       onClick={() => setAiChatOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-md bg-[#e50914] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-500 whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-2 rounded-md bg-[#e50914] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 whitespace-nowrap shrink-0"
                     >
                       <MessageSquare className="h-4 w-4" />
-                      <span>{theme?.hero_cta_secondary || 'Ask Abdullah AI'}</span>
+                      <span>Ask Abdullah AI</span>
                     </button>
                   </div>
 
                   {/* Interactive Workspace Perspective Toolbar */}
-                  <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-4">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/80 pt-3.5">
                     <span className="mr-2 text-xs text-slate-400">Perspective:</span>
                     {(
                       [
@@ -618,7 +717,7 @@ export default function App() {
                         onClick={() => setProfileMode(mode.id)}
                         className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                           profileMode === mode.id
-                            ? 'bg-zinc-800 text-white'
+                            ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 text-white ring-1 ring-blue-500/40'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
@@ -631,9 +730,9 @@ export default function App() {
 
               {/* Right Column: Interactive 3D Spatial Portrait */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
+                initial={minimalMotion ? false : { opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.55, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 className="lg:col-span-5"
               >
                 <HeroPortrait3D
@@ -641,40 +740,55 @@ export default function App() {
                   fullName={profile.full_name}
                   subtitle={`${profile.location} · Superior University (BSCS)`}
                   variant="hero"
+                  className="lg:h-[420px] xl:h-[455px]"
                 />
               </motion.div>
             </div>
+          </div>
 
-            {/* Continue Exploring 5-Episode Strip */}
-            <div className="mt-14 border-t border-zinc-900 pt-8">
-              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
-                  Continue Exploring
-                </h2>
-                <span className="text-xs text-slate-400">
-                  Jump directly to any episode in the series
-                </span>
-              </div>
+          {/* Subtle Scroll Indicator */}
+          <div className="relative z-10 flex justify-center pb-5 pt-1">
+            <button
+              type="button"
+              onClick={() => scrollToSection('continue-series')}
+              className="group inline-flex flex-col items-center gap-1 text-[11px] font-mono tracking-[0.2em] text-slate-400 uppercase transition-colors hover:text-white"
+            >
+              <span>Scroll to explore</span>
+              <ChevronDown className="animate-scroll-chevron h-4 w-4 text-blue-400" />
+            </button>
+          </div>
+        </section>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {CONTINUE_EPISODES.map((ep) => (
-                  <button
-                    key={ep.id}
-                    type="button"
-                    onClick={() => scrollToSection(ep.id)}
-                    className="group relative overflow-hidden rounded-lg border border-zinc-800/90 bg-[#0D0F14] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-zinc-500"
-                  >
-                    <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-zinc-800 transition-colors group-hover:bg-[#e50914]" />
-                    <p className="font-mono text-[11px] font-semibold text-[#e50914] uppercase">
-                      {ep.episode}
-                    </p>
-                    <p className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
-                      {ep.title}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">{ep.subtitle}</p>
-                  </button>
-                ))}
-              </div>
+        {/* Continue Exploring 5-Episode Series Rail */}
+        <section id="continue-series" className="border-b border-zinc-900 bg-[#07080D]">
+          <div className="mx-auto max-w-[1360px] px-6 py-10 lg:px-10">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
+                Continue Exploring
+              </h2>
+              <span className="text-xs text-slate-400">
+                Jump directly to any episode in the series
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {CONTINUE_EPISODES.map((ep) => (
+                <button
+                  key={ep.id}
+                  type="button"
+                  onClick={() => scrollToSection(ep.id)}
+                  className="group relative overflow-hidden rounded-lg border border-zinc-800/90 bg-[#0D0F14] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500/60"
+                >
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-zinc-800 transition-colors group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500" />
+                  <p className="font-mono text-[11px] font-semibold text-blue-400 uppercase">
+                    {ep.episode}
+                  </p>
+                  <p className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
+                    {ep.title}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-400">{ep.subtitle}</p>
+                </button>
+              ))}
             </div>
           </div>
         </section>
@@ -718,6 +832,12 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <ProjectOpeningTransition
+        project={openingProject}
+        onComplete={commitProjectModal}
+        onCancel={() => setOpeningProject(null)}
+      />
 
       <ProjectDetailModal project={selectedProject} onClose={handleCloseProject} />
 

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Save, Shield, Download, LogOut, Upload, Film } from 'lucide-react';
+import { Save, Shield, Download, LogOut, Upload, Film, Sparkles, ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-react';
 import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminSecurityThemeTabsProps {
@@ -7,6 +7,7 @@ interface AdminSecurityThemeTabsProps {
   token: string;
   adminEmail: string;
   theme: any;
+  projects?: any[];
   sessions: any[];
   auditLogs: any[];
   mfaEnabled: boolean;
@@ -19,6 +20,7 @@ export function AdminSecurityThemeTabs({
   token,
   adminEmail,
   theme,
+  projects = [],
   sessions,
   auditLogs,
   mfaEnabled,
@@ -133,7 +135,7 @@ export function AdminSecurityThemeTabs({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-6 rounded-lg border border-zinc-800 bg-[#07080B] p-4 text-sm text-slate-200">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 rounded-lg border border-zinc-800 bg-[#07080B] p-4 text-sm text-slate-200">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -160,6 +162,48 @@ export function AdminSecurityThemeTabs({
               />
               <span>Enable 3D Hero Scene</span>
             </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={themeForm.hero_montage_enabled !== 0}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, hero_montage_enabled: e.target.checked ? 1 : 0 })
+                }
+              />
+              <span>Enable Hero Project Montage</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={themeForm.dvd_transition_enabled !== 0}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, dvd_transition_enabled: e.target.checked ? 1 : 0 })
+                }
+              />
+              <span>DVD-Style Project Opening</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={themeForm.video_autoplay_preview !== 0}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, video_autoplay_preview: e.target.checked ? 1 : 0 })
+                }
+              />
+              <span>Hover / Tap Video Previews</span>
+            </label>
+            <div className="sm:col-span-2 lg:col-span-3 pt-2 border-t border-zinc-800/80">
+              <label className="mb-1 block text-xs text-slate-400">Animation Intensity</label>
+              <select
+                value={themeForm.animation_intensity || 'cinematic'}
+                onChange={(e) => setThemeForm({ ...themeForm, animation_intensity: e.target.value })}
+                className="h-9 w-full max-w-xs rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 text-xs text-white"
+              >
+                <option value="cinematic">Cinematic (Full 3D DVD Launch + Scroll Motion)</option>
+                <option value="balanced">Balanced (Subtle Transitions)</option>
+                <option value="minimal">Minimal (Static / Reduced Motion Priority)</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -310,6 +354,167 @@ export function AdminSecurityThemeTabs({
               />
             </div>
           ) : null}
+        </div>
+
+        {/* Hero Project Montage Curation */}
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-400" />
+              <div>
+                <h4 className="font-display text-base font-semibold text-white">Hero Project Montage</h4>
+                <p className="text-xs text-slate-400">
+                  Curate verified project slides shown in the full-screen Hero montage (defaults to featured completed builds if empty).
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const featuredSlides = projects
+                    .filter((p) => p.is_published && !p.is_archived && p.status !== 'Experimental')
+                    .slice(0, 5)
+                    .map((p) => ({
+                      projectSlug: p.slug,
+                      title: String(p.title || '').split('—')[0].trim(),
+                      subtitle: p.preview_video_url ? 'Verified Video Demo' : `${p.category} · Verified Visual Frame`,
+                      category: p.category,
+                      imageUrl: p.cover_image || '',
+                      videoUrl: p.preview_video_url || '',
+                    }));
+                  setThemeForm({ ...themeForm, hero_montage: featuredSlides });
+                  notify('Populated montage from verified featured projects. Click Save Visual Settings.');
+                }}
+                className="rounded-lg border border-blue-700/60 bg-blue-950/30 px-3 py-1.5 text-xs font-medium text-blue-200 hover:border-blue-500"
+              >
+                Auto-Populate from Featured Projects
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setThemeForm({
+                    ...themeForm,
+                    hero_montage: [
+                      ...(Array.isArray(themeForm.hero_montage) ? themeForm.hero_montage : []),
+                      { title: 'New Showcase Slide', subtitle: 'Verified Frame', imageUrl: '', videoUrl: '' },
+                    ],
+                  })
+                }
+                className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-white hover:border-zinc-500"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Slide</span>
+              </button>
+            </div>
+          </div>
+
+          {Array.isArray(themeForm.hero_montage) && themeForm.hero_montage.length > 0 ? (
+            <div className="space-y-3">
+              {themeForm.hero_montage.map((slide: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 items-center gap-3 rounded-lg border border-zinc-800 bg-[#07080B] p-3 sm:grid-cols-12"
+                >
+                  <div className="sm:col-span-3">
+                    <input
+                      type="text"
+                      value={slide.title || ''}
+                      onChange={(e) => {
+                        const copy = [...themeForm.hero_montage];
+                        copy[idx] = { ...slide, title: e.target.value };
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      placeholder="Project Title"
+                      className="h-8 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <input
+                      type="text"
+                      value={slide.subtitle || ''}
+                      onChange={(e) => {
+                        const copy = [...themeForm.hero_montage];
+                        copy[idx] = { ...slide, subtitle: e.target.value };
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      placeholder="Subtitle / Label"
+                      className="h-8 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      type="text"
+                      value={slide.imageUrl || ''}
+                      onChange={(e) => {
+                        const copy = [...themeForm.hero_montage];
+                        copy[idx] = { ...slide, imageUrl: e.target.value };
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      placeholder="Image URL"
+                      className="h-8 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-[11px] text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      type="text"
+                      value={slide.videoUrl || ''}
+                      onChange={(e) => {
+                        const copy = [...themeForm.hero_montage];
+                        copy[idx] = { ...slide, videoUrl: e.target.value };
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      placeholder="Optional Video URL"
+                      className="h-8 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-[11px] text-white"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 sm:col-span-2">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => {
+                        const copy = [...themeForm.hero_montage];
+                        [copy[idx - 1], copy[idx]] = [copy[idx], copy[idx - 1]];
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      className="rounded border border-zinc-800 p-1 text-slate-300 disabled:opacity-30"
+                      title="Move up"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === themeForm.hero_montage.length - 1}
+                      onClick={() => {
+                        const copy = [...themeForm.hero_montage];
+                        [copy[idx], copy[idx + 1]] = [copy[idx + 1], copy[idx]];
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      className="rounded border border-zinc-800 p-1 text-slate-300 disabled:opacity-30"
+                      title="Move down"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copy = themeForm.hero_montage.filter((_: any, i: number) => i !== idx);
+                        setThemeForm({ ...themeForm, hero_montage: copy });
+                      }}
+                      className="rounded border border-zinc-800 p-1 text-red-400 hover:border-red-700"
+                      title="Remove slide"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">
+              No custom slides configured — Hero Montage automatically cycles through OmniSynth, V-Watch, AI-ML Lab, LMS-COMPLETE, and Scalable RAG.
+            </p>
+          )}
         </div>
 
         {/* RAG Pipeline Configuration */}

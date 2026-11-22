@@ -7,6 +7,7 @@
     --font-mono: "JetBrains Mono", ui-monospace, monospace;
     --accent-primary: #e50914;
     --accent-secondary: #3b82f6;
+    --accent-purple: #8b5cf6;
   }
 
   html {
@@ -54,6 +55,56 @@
   scrollbar-width: none;
 }
 
+/* GPU-composited cinematic animations (transform + opacity only) */
+@keyframes kenburnsDrift {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.075) translate3d(-1.2%, -0.8%, 0);
+  }
+}
+
+@keyframes cinemaLightSweep {
+  0% {
+    transform: translate3d(-135%, 0, 0) skewX(-18deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(165%, 0, 0) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes scrollChevronFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(0, 6px, 0);
+    opacity: 1;
+  }
+}
+
+.animate-kenburns {
+  animation: kenburnsDrift 10s ease-out forwards;
+  will-change: transform;
+}
+
+.animate-light-sweep {
+  animation: cinemaLightSweep 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-scroll-chevron {
+  animation: scrollChevronFloat 2.1s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -62,5 +113,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .animate-kenburns,
+  .animate-light-sweep,
+  .animate-scroll-chevron {
+    animation: none !important;
+    transform: none !important;
   }
 }

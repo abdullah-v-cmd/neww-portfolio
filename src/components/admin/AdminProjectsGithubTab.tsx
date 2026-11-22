@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { RefreshCw, Plus, Check, EyeOff, Star, Globe, Trash2, Edit3, RotateCcw, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { RefreshCw, Plus, Check, EyeOff, Star, Globe, Trash2, Edit3, RotateCcw, X, Upload, Image as ImageIcon, Film } from 'lucide-react';
 import { parseJsonSafe } from '../../utils/safeFetch';
 
 interface AdminProjectsGithubTabProps {
@@ -10,6 +10,16 @@ interface AdminProjectsGithubTabProps {
   onReload: () => Promise<void>;
   notify: (msg: string) => void;
 }
+
+const PROJECT_CATEGORIES = [
+  'Generative AI & RAG',
+  'Computer Vision',
+  'AI & Machine Learning',
+  'Automation & MLOps',
+  'Full-Stack Development',
+  'Enterprise Applications',
+  'Research & Experimental',
+];
 
 export function AdminProjectsGithubTab({
   mode,
@@ -26,13 +36,17 @@ export function AdminProjectsGithubTab({
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Generative AI & RAG');
   const [status, setStatus] = useState('Completed');
+  const [sortOrder, setSortOrder] = useState(0);
   const [tagline, setTagline] = useState('');
   const [overview, setOverview] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [techs, setTechs] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [previewVideoUrl, setPreviewVideoUrl] = useState('');
+  const [videoDescription, setVideoDescription] = useState('');
   const [uploadingProjImg, setUploadingProjImg] = useState(false);
+  const [uploadingProjVid, setUploadingProjVid] = useState(false);
 
   // Full Edit Modal
   const [editingProj, setEditingProj] = useState<any>(null);
@@ -67,6 +81,31 @@ export function AdminProjectsGithubTab({
     }
   };
 
+  const handleUploadProjectVideo = async (file: File, target: 'create' | 'edit') => {
+    setUploadingProjVid(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/projects/upload-video', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await parseJsonSafe<any>(res);
+      if (!res.ok) throw new Error(data.error || 'Video upload failed.');
+      if (target === 'create') {
+        setPreviewVideoUrl(data.url);
+      } else {
+        setEditingProj((prev: any) => (prev ? { ...prev, preview_video_url: data.url } : prev));
+      }
+      notify('Project preview video uploaded (MP4/WebM).');
+    } catch (err: any) {
+      notify(err?.message || 'Project video upload failed.');
+    } finally {
+      setUploadingProjVid(false);
+    }
+  };
+
   const handleCreateProject = async (e: FormEvent) => {
     e.preventDefault();
     const res = await fetch('/api/admin/projects', {
@@ -76,9 +115,12 @@ export function AdminProjectsGithubTab({
         title,
         category,
         status,
+        sort_order: Number(sortOrder) || 0,
         tagline,
         overview,
         cover_image: coverImage,
+        preview_video_url: previewVideoUrl,
+        video_description: videoDescription,
         github_url: githubUrl,
         live_url: liveUrl,
         live_demo_verified: Boolean(liveUrl),
@@ -92,6 +134,8 @@ export function AdminProjectsGithubTab({
       setTagline('');
       setOverview('');
       setCoverImage('');
+      setPreviewVideoUrl('');
+      setVideoDescription('');
       setGithubUrl('');
       setLiveUrl('');
       setTechs('');
@@ -317,11 +361,9 @@ export function AdminProjectsGithubTab({
             onChange={(e) => setCategory(e.target.value)}
             className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
           >
-            <option>Generative AI & RAG</option>
-            <option>Computer Vision</option>
-            <option>AI & Machine Learning</option>
-            <option>Automation & MLOps</option>
-            <option>Full-Stack Development</option>
+            {PROJECT_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
           <select
             value={status}
@@ -339,7 +381,14 @@ export function AdminProjectsGithubTab({
             placeholder="One-line Tagline"
             value={tagline}
             onChange={(e) => setTagline(e.target.value)}
-            className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white sm:col-span-3"
+            className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white sm:col-span-2"
+          />
+          <input
+            type="number"
+            placeholder="Sort Order (0 = first)"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number(e.target.value))}
+            className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
           />
           <input
             type="url"
@@ -399,6 +448,38 @@ export function AdminProjectsGithubTab({
             </label>
           </div>
         </div>
+        <div className="grid grid-cols-1 items-center gap-3 rounded-lg border border-zinc-800 bg-[#07080B] p-3 sm:grid-cols-12">
+          <div className="sm:col-span-5">
+            <input
+              type="text"
+              placeholder="Preview Video URL (MP4/WebM, optional)"
+              value={previewVideoUrl}
+              onChange={(e) => setPreviewVideoUrl(e.target.value)}
+              className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+            />
+          </div>
+          <div className="sm:col-span-4">
+            <input
+              type="text"
+              placeholder="Video caption / demo description"
+              value={videoDescription}
+              onChange={(e) => setVideoDescription(e.target.value)}
+              className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 text-xs text-white"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-blue-700/60 bg-blue-950/25 px-3 text-xs font-medium text-blue-200 hover:border-blue-500">
+              <Film className="h-3.5 w-3.5" />
+              <span>{uploadingProjVid ? 'Uploading…' : 'Upload Video'}</span>
+              <input
+                type="file"
+                accept="video/mp4,video/webm"
+                className="sr-only"
+                onChange={(e) => e.target.files?.[0] && handleUploadProjectVideo(e.target.files[0], 'create')}
+              />
+            </label>
+          </div>
+        </div>
         <textarea
           rows={2}
           required
@@ -453,8 +534,15 @@ export function AdminProjectsGithubTab({
                       />
                     ) : null}
                     <div>
-                      <p className="font-medium text-white">{p.title}</p>
-                      <p className="text-[11px] text-slate-500">{p.category}</p>
+                      <p className="font-medium text-white">
+                        {p.title}
+                        {p.preview_video_url ? (
+                          <span className="ml-2 font-mono text-[10px] text-blue-400">[Video]</span>
+                        ) : null}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        #{p.sort_order ?? 0} · {p.category}
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -538,7 +626,7 @@ export function AdminProjectsGithubTab({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <div className="sm:col-span-2">
                 <label className="mb-1 block text-xs text-slate-400">Title</label>
                 <input
@@ -550,11 +638,23 @@ export function AdminProjectsGithubTab({
                 />
               </div>
               <div>
+                <label className="mb-1 block text-xs text-slate-400">Category</label>
+                <select
+                  value={editingProj.category || 'Generative AI & RAG'}
+                  onChange={(e) => setEditingProj({ ...editingProj, category: e.target.value })}
+                  className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-2.5 text-xs text-white"
+                >
+                  {PROJECT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="mb-1 block text-xs text-slate-400">Honest Status</label>
                 <select
                   value={editingProj.status || 'Completed'}
                   onChange={(e) => setEditingProj({ ...editingProj, status: e.target.value })}
-                  className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-2.5 text-xs text-white"
                 >
                   <option>Completed</option>
                   <option>In Progress</option>
@@ -564,7 +664,7 @@ export function AdminProjectsGithubTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-xs text-slate-400">GitHub URL</label>
                 <input
@@ -583,10 +683,19 @@ export function AdminProjectsGithubTab({
                   className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
                 />
               </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-400">Sort Order (Display Priority)</label>
+                <input
+                  type="number"
+                  value={editingProj.sort_order ?? 0}
+                  onChange={(e) => setEditingProj({ ...editingProj, sort_order: Number(e.target.value) })}
+                  className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+                />
+              </div>
             </div>
 
             <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-3">
-              <label className="block text-xs text-slate-400">Project Cover Image</label>
+              <label className="block text-xs text-slate-400">Project Cover Image / Thumbnail</label>
               <div className="flex flex-wrap items-center gap-3">
                 {editingProj.cover_image ? (
                   <img
@@ -613,6 +722,57 @@ export function AdminProjectsGithubTab({
                   />
                 </label>
               </div>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-blue-900/40 bg-[#07080B] p-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-blue-300">Project Preview Video (MP4 / WebM)</label>
+                {editingProj.preview_video_url ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditingProj({ ...editingProj, preview_video_url: '' })}
+                    className="text-[11px] text-red-400 hover:underline"
+                  >
+                    Remove Video
+                  </button>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  value={editingProj.preview_video_url || ''}
+                  onChange={(e) => setEditingProj({ ...editingProj, preview_video_url: e.target.value })}
+                  placeholder="/uploads/public/projvid_...mp4"
+                  className="h-9 min-w-[200px] flex-1 rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 font-mono text-xs text-white"
+                />
+                <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-blue-700/60 bg-blue-950/30 px-3 text-xs font-medium text-blue-200 hover:border-blue-500">
+                  <Film className="h-3.5 w-3.5" />
+                  <span>{uploadingProjVid ? 'Uploading…' : 'Upload Video'}</span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm"
+                    className="sr-only"
+                    onChange={(e) => e.target.files?.[0] && handleUploadProjectVideo(e.target.files[0], 'edit')}
+                  />
+                </label>
+              </div>
+              <input
+                type="text"
+                value={editingProj.video_description || ''}
+                onChange={(e) => setEditingProj({ ...editingProj, video_description: e.target.value })}
+                placeholder="Video demo caption / walkthrough description (optional)"
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#0D0F14] px-3 text-xs text-white"
+              />
+              {editingProj.preview_video_url ? (
+                <video
+                  src={editingProj.preview_video_url}
+                  poster={editingProj.cover_image || undefined}
+                  controls
+                  muted
+                  playsInline
+                  className="h-36 w-full rounded-lg border border-zinc-800 bg-black object-cover"
+                />
+              ) : null}
             </div>
 
             <div>

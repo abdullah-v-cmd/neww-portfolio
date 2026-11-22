@@ -33,6 +33,15 @@ export interface ProfileBackgroundOverride {
   bg_overlay_opacity?: number;
 }
 
+export interface HeroMontageSlide {
+  projectSlug?: string;
+  title: string;
+  subtitle?: string;
+  category?: string;
+  imageUrl: string;
+  videoUrl?: string;
+}
+
 export interface ThemeSettings {
   accent_color: string;
   secondary_accent: string;
@@ -57,6 +66,10 @@ export interface ThemeSettings {
   rag_top_k?: number;
   rag_chunk_size?: number;
   rag_hybrid_weight?: number;
+  dvd_transition_enabled?: number;
+  video_autoplay_preview?: number;
+  hero_montage_enabled?: number;
+  hero_montage?: HeroMontageSlide[];
 }
 
 export interface ExperienceRole {
@@ -146,6 +159,8 @@ export interface ProjectItem {
   challenges: string[];
   verified_results: string[];
   cover_image: string;
+  preview_video_url?: string;
+  video_description?: string;
   screenshots: string[];
   github_url: string;
   live_url: string;

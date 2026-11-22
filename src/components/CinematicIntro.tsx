@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ProfileMode } from '../types/portfolio';
+import { MonogramLogo } from './MonogramLogo';
 
 interface CinematicIntroProps {
   showIntro: boolean;
@@ -212,12 +213,13 @@ export function CinematicIntro({
 
       {stage === 'brand' ? (
         <div className="intro-shell relative z-10 flex flex-col items-center text-center">
-          <div className="intro-line mb-5 h-[2px] w-20 origin-center bg-[#e50914]" />
+          <MonogramLogo size="lg" className="intro-sub mb-5" />
+          <div className="intro-line mb-5 h-[2px] w-20 origin-center bg-gradient-to-r from-blue-500 via-purple-500 to-[#e50914]" />
           <h1 className="intro-title font-display text-5xl font-bold tracking-[0.06em] text-white uppercase sm:text-8xl">
             ABDULLAH NAVEED
           </h1>
-          <p className="intro-sub mt-3 text-xs font-semibold tracking-[0.4em] text-[#e50914] uppercase sm:text-sm">
-            The Engineering Series
+          <p className="intro-sub mt-3 text-xs font-semibold tracking-[0.4em] text-blue-400 uppercase sm:text-sm">
+            AI/ML · Full-Stack · GenAI Systems
           </p>
         </div>
       ) : (

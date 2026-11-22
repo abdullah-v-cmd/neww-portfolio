@@ -20,7 +20,7 @@ export function HeroCanvas3D({ enabled, accentColor = '#dc2626' }: HeroCanvas3DP
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Detect software WebGL cleanly via renderer string
+    // Detect software WebGL cleanly via renderer string (avoid heavy CPU PMREM shaders)
     const isSoftwareGl = (() => {
       try {
         const probe = document.createElement('canvas').getContext('webgl2');
@@ -35,10 +35,12 @@ export function HeroCanvas3D({ enabled, accentColor = '#dc2626' }: HeroCanvas3DP
       }
     })();
 
+    if (isSoftwareGl) return;
+
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: !isSoftwareGl,
+        antialias: true,
         alpha: true,
         powerPreference: 'high-performance',
       });
@@ -49,7 +51,7 @@ export function HeroCanvas3D({ enabled, accentColor = '#dc2626' }: HeroCanvas3DP
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;

@@ -112,6 +112,7 @@ publicRouter.get('/portfolio', (_req, res) => {
           section_order: safeJson(theme.section_order_json, []),
           hidden_sections: safeJson(theme.hidden_sections_json, []),
           profile_backgrounds: safeJson(theme.profile_backgrounds_json, {}),
+          hero_montage: safeJson(theme.hero_montage_json, []),
         }
       : null,
     experience,

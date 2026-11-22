@@ -397,6 +397,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
               token={token}
               adminEmail={user?.email || ''}
               theme={theme}
+              projects={projects}
               sessions={sessions}
               auditLogs={auditLogs}
               mfaEnabled={Boolean(user?.mfa_enabled)}
