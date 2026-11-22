@@ -13,7 +13,8 @@ import { adminRouter } from './server/routes/admin.ts';
 async function startServer() {
   initializeDatabase();
   const kbCount = (db.prepare('SELECT COUNT(*) as c FROM knowledge_documents').get() as { c: number }).c;
-  if (kbCount === 0) {
+  const chunkCount = (db.prepare('SELECT COUNT(*) as c FROM knowledge_chunks').get() as { c: number }).c;
+  if (kbCount === 0 || chunkCount === 0) {
     rebuildPublicKnowledgeBase();
   }
 

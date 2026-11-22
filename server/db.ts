@@ -18,6 +18,23 @@ export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+export function getGroqEnvKey(): string {
+  return (
+    process.env['groq-api'] ||
+    process.env['GROQ-API'] ||
+    process.env.GROQ_API_KEY ||
+    process.env.GROQ_API ||
+    ''
+  ).trim();
+}
+
+function ensureColumn(tableName: string, columnName: string, definition: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
+
 export function initializeDatabase(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS admin_users (
@@ -336,9 +353,116 @@ export function initializeDatabase(): void {
       uploaded_by TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS skill_project_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      UNIQUE(skill_id, project_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS skill_experience_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+      role_id INTEGER NOT NULL REFERENCES experience_roles(id) ON DELETE CASCADE,
+      UNIQUE(skill_id, role_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS knowledge_chunks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      document_id INTEGER NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+      chunk_index INTEGER NOT NULL DEFAULT 0,
+      title TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL DEFAULT '',
+      scope TEXT NOT NULL DEFAULT 'public',
+      content TEXT NOT NULL,
+      token_estimate INTEGER NOT NULL DEFAULT 0,
+      vector_json TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS resume_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version_name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      filename TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      storage_path TEXT NOT NULL,
+      file_size INTEGER NOT NULL DEFAULT 0,
+      mime_type TEXT NOT NULL DEFAULT 'application/pdf',
+      scope TEXT NOT NULL DEFAULT 'recruiter',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      is_default INTEGER NOT NULL DEFAULT 0,
+      is_archived INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS cv_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      request_uid TEXT NOT NULL UNIQUE,
+      full_name TEXT NOT NULL,
+      company TEXT NOT NULL,
+      email TEXT NOT NULL,
+      job_title TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'New Request',
+      delivery_status TEXT NOT NULL DEFAULT 'Pending',
+      internal_notes TEXT DEFAULT '',
+      duplicate_hash TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS cv_delivery_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      request_id INTEGER NOT NULL REFERENCES cv_requests(id) ON DELETE CASCADE,
+      resume_version_id INTEGER DEFAULT NULL REFERENCES resume_versions(id) ON DELETE SET NULL,
+      custom_attachment_name TEXT DEFAULT '',
+      recipient_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      email_body TEXT NOT NULL,
+      sent_by_admin TEXT NOT NULL,
+      attempt_number INTEGER NOT NULL DEFAULT 1,
+      delivery_status TEXT NOT NULL,
+      error_message TEXT DEFAULT '',
+      message_id TEXT DEFAULT '',
+      idempotency_key TEXT DEFAULT '',
+      download_token TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
+  // Safe idempotent column additions for existing databases
+  ensureColumn('projects', 'status', `TEXT NOT NULL DEFAULT 'Completed'`);
+  ensureColumn('projects', 'limitations', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('projects', 'companion_group', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('projects', 'live_demo_verified', `INTEGER NOT NULL DEFAULT 0`);
+
+  ensureColumn('skills', 'description', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('skills', 'what_it_does', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('skills', 'how_abdullah_uses', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('skills', 'status', `TEXT NOT NULL DEFAULT 'Used in Projects'`);
+  ensureColumn('skills', 'icon_key', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('skills', 'is_verified', `INTEGER NOT NULL DEFAULT 1`);
+
+  ensureColumn('theme_settings', 'bg_mode', `TEXT NOT NULL DEFAULT 'default'`);
+  ensureColumn('theme_settings', 'bg_video_url', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('theme_settings', 'bg_mobile_video_url', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('theme_settings', 'bg_poster_url', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('theme_settings', 'bg_image_url', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('theme_settings', 'bg_gradient_css', `TEXT NOT NULL DEFAULT ''`);
+  ensureColumn('theme_settings', 'bg_overlay_opacity', `REAL NOT NULL DEFAULT 0.68`);
+  ensureColumn('theme_settings', 'profile_backgrounds_json', `TEXT NOT NULL DEFAULT '{}'`);
+  ensureColumn('theme_settings', 'rag_top_k', `INTEGER NOT NULL DEFAULT 6`);
+  ensureColumn('theme_settings', 'rag_chunk_size', `INTEGER NOT NULL DEFAULT 800`);
+  ensureColumn('theme_settings', 'rag_hybrid_weight', `REAL NOT NULL DEFAULT 0.65`);
+
+  ensureColumn('github_repos', 'repo_status', `TEXT NOT NULL DEFAULT 'Verified'`);
+  ensureColumn('github_repos', 'companion_group', `TEXT NOT NULL DEFAULT ''`);
+
   seedInitialData();
+  runPostSeedMigrations();
 }
 
 function seedInitialData(): void {
@@ -1086,7 +1210,388 @@ function seedInitialData(): void {
       1,
       1024,
       30,
-      'awaiting_api_key'
+      getGroqEnvKey() ? 'configured' : 'awaiting_api_key'
     );
   })();
 }
+
+const SKILL_PROFILES: Record<string, { description: string; whatItDoes: string; howUsed: string }> = {
+  Python: {
+    description: 'Primary engineering language for AI pipelines, computer vision workers, and FastAPI backends.',
+    whatItDoes: 'Powers data preprocessing, deep learning training, async REST/WebSocket APIs, and automation scripts.',
+    howUsed: 'Used across DeepVision.ai, Developers Hub, OmniSynth, V-Watch, 01-Vanilla-RAG, and 60+ ML models.',
+  },
+  FastAPI: {
+    description: 'High-performance asynchronous Python web framework with automatic OpenAPI schemas.',
+    whatItDoes: 'Serves typed REST APIs, JWT auth, streaming responses, and WebSocket real-time workspaces.',
+    howUsed: 'Core backend framework in OmniSynth, V-Watch, Scalable RAG, LegalAI, LuxeWatch, and Muscle Bros.',
+  },
+  RAG: {
+    description: 'Retrieval-Augmented Generation grounding LLM outputs in verified external documents.',
+    whatItDoes: 'Combines document chunking, vector embeddings, similarity search, and citation-backed synthesis.',
+    howUsed: 'Built production RAG pipelines at Developers Hub and engineered OmniSynth (HyDE+FAISS), pgvector RAG, and 01-Vanilla-RAG.',
+  },
+  'Large Language Models': {
+    description: 'Foundation language models orchestrated for reasoning, drafting, synthesis, and tool execution.',
+    whatItDoes: 'Generates grounded technical answers, structured summaries, and multi-agent plans from retrieved context.',
+    howUsed: 'Integrated Groq Llama-3-70B/3.3-70B, Mixtral-8x7B, Gemini, and Hugging Face models across portfolio platforms.',
+  },
+  Docker: {
+    description: 'Containerization platform for packaging reproducible multi-service applications.',
+    whatItDoes: 'Isolates API servers, databases, Redis brokers, ML inference workers, and health watchdogs into compose networks.',
+    howUsed: 'Containerized RAG services at Developers Hub and architected multi-container Docker Compose stacks in V-Watch and OmniSynth.',
+  },
+  PostgreSQL: {
+    description: 'Relational database system with strong ACID guarantees and pgvector similarity extensions.',
+    whatItDoes: 'Stores relational application records alongside high-dimensional vector embeddings for semantic retrieval.',
+    howUsed: 'Primary datastore across OmniSynth, V-Watch, Scalable RAG (pgvector), LuxeWatch, and Muscle Bros.',
+  },
+  YOLOv8: {
+    description: 'Real-time object detection neural architecture by Ultralytics.',
+    whatItDoes: 'Detects vehicles, traffic participants, and rule violations across live RTSP and video frames.',
+    howUsed: 'Pre-baked into the isolated edge_ai inference container in V-Watch 24/7 CCTV surveillance.',
+  },
+  OpenCV: {
+    description: 'Open-source computer vision and image processing library.',
+    whatItDoes: 'Handles video frame decoding, RTSP stream capture, mask preprocessing, and visual overlays.',
+    howUsed: 'Powers V-Watch frame capture/relay recovery and ZaraFit garment preprocessing.',
+  },
+  'Next.js': {
+    description: 'Full-stack React framework for server-rendered and modern interactive TypeScript applications.',
+    whatItDoes: 'Delivers fast client/server routing, structured UI components, and clean API integration.',
+    howUsed: 'Built web interfaces for OmniSynth, LuxeWatch E-Commerce, and Muscle Bros Full-Stack.',
+  },
+  'React.js': {
+    description: 'Declarative component library for building responsive web applications and admin portals.',
+    whatItDoes: 'Manages interactive client state, real-time streaming chat, carousels, and dashboards.',
+    howUsed: 'Frontend layer for V-Watch, Scalable RAG Platform, LinkedIn Job Bot, and this portfolio CMS.',
+  },
+  TypeScript: {
+    description: 'Statically typed superset of JavaScript for reliable full-stack applications.',
+    whatItDoes: 'Prevents runtime schema bugs across API gateways, React components, and backend services.',
+    howUsed: 'Core language for Scaleable AI API Gateway, LuxeWatch, LMS-COMPLETE, and this portfolio platform.',
+  },
+  Redis: {
+    description: 'In-memory data structure store used for caching and distributed task queues.',
+    whatItDoes: 'Accelerates API catalog reads and acts as message broker for asynchronous Celery workers.',
+    howUsed: 'Backs async document ingestion in Scalable RAG and product caching in LuxeWatch & Muscle Bros.',
+  },
+  'Groq API': {
+    description: 'Ultra-low-latency LPU inference API for open-weights LLMs like Llama-3.3-70B and Mixtral.',
+    whatItDoes: 'Executes fast chat completions and multi-agent reasoning steps in milliseconds.',
+    howUsed: 'Powers OmniSynth agents, Muscle Bros AI support assistant, and live inference in this portfolio.',
+  },
+  'Machine Learning': {
+    description: 'Applied supervised and unsupervised statistical learning algorithms.',
+    whatItDoes: 'Solves classification, regression, clustering, and forecasting problems on structured data.',
+    howUsed: 'Trained models across DeepVision.ai, AI-ML-60-Models Engineering Lab, and ML Pipeline workbench.',
+  },
+  'Deep Learning': {
+    description: 'Multi-layer neural architectures including ANN, CNN, RNN, and DNN models.',
+    whatItDoes: 'Learns hierarchical representations from images, sequences, and high-dimensional datasets.',
+    howUsed: 'Built and trained ANN, RNN, DNN, and CNN architectures at DeepVision.ai and AI-ML-Engineering-Lab.',
+  },
+};
+
+function runPostSeedMigrations(): void {
+  // 1. Sync Groq env key if configured in AI Studio Secrets (`groq-api` or `GROQ_API_KEY`)
+  const groqKey = getGroqEnvKey();
+  if (groqKey) {
+    const groqProv = db
+      .prepare(`SELECT id, api_key_enc, last_status FROM ai_providers WHERE base_url LIKE '%groq.com%' LIMIT 1`)
+      .get() as { id: number; api_key_enc: string; last_status: string } | undefined;
+    if (groqProv) {
+      if (groqProv.last_status === 'awaiting_api_key') {
+        db.prepare(`UPDATE ai_providers SET last_status = 'configured', updated_at = datetime('now') WHERE id = ?`).run(groqProv.id);
+      }
+      // If Gemini has no env or custom key, auto-activate Groq so Abdullah AI works immediately
+      const geminiProv = db
+        .prepare(`SELECT id, api_key_enc, is_active FROM ai_providers WHERE provider_type = 'gemini' LIMIT 1`)
+        .get() as { id: number; api_key_enc: string; is_active: number } | undefined;
+      const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim() || geminiProv?.api_key_enc);
+      if (!hasGeminiKey) {
+        db.transaction(() => {
+          db.prepare(`UPDATE ai_providers SET is_active = 0, is_fallback = 1 WHERE provider_type = 'gemini'`).run();
+          db.prepare(`UPDATE ai_providers SET is_active = 1, is_fallback = 0, last_status = 'configured' WHERE id = ?`).run(groqProv.id);
+        })();
+      }
+    }
+  }
+
+  // 2. Ensure verified project statuses, companion groups, and live_demo_verified flags
+  const projectUpdates: Array<{ slug: string; status: string; liveVerified: number; companion: string; limitations: string }> = [
+    {
+      slug: 'omnisynth',
+      status: 'Completed',
+      liveVerified: 1,
+      companion: '',
+      limitations: 'Public frontend hosted on Vercel; full multi-agent FastAPI + FAISS backend requires Groq API and Postgres/Docker runtime.',
+    },
+    {
+      slug: 'v-watch',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Designed for local or GPU server Docker Compose execution with RTSP/demo camera streams; no public hosted sandbox URL.',
+    },
+    {
+      slug: 'scalable-rag-platform',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: 'rag-systems',
+      limitations: 'Requires Docker Compose (PostgreSQL pgvector + Redis + Celery worker) for full asynchronous document indexing.',
+    },
+    {
+      slug: '01-vanilla-rag',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: 'rag-systems',
+      limitations: 'Intentionally uses in-process cosine vectors instead of external vector databases to keep every retrieval step inspectable.',
+    },
+    {
+      slug: 'ai-ml-60-models',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Collection of 60 standalone training/evaluation modules for research and learning rather than a single hosted web service.',
+    },
+    {
+      slug: 'legalai-assistant',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Educational AI legal drafting and Q&A tool requiring Hugging Face token; not a substitute for licensed legal counsel.',
+    },
+    {
+      slug: 'mlops-engineering-lab',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Local MLOps reference pipeline (DVC, MLflow SQLite, Docker serving) without continuous cloud cluster deployment.',
+    },
+    {
+      slug: 'zarafit-ai-tryon',
+      status: 'Experimental',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Depends on external Hugging Face Gradio IDM-VTON inference availability.',
+    },
+    {
+      slug: 'luxewatch-ecommerce',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Configured for Docker Compose local/staging execution with Stripe test keys.',
+    },
+    {
+      slug: 'scaleable-ai-api',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'API gateway framework requiring downstream LLM provider API keys.',
+    },
+    {
+      slug: 'gymbro-fullstack',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: 'muscle-bros-series',
+      limitations: 'Canonical FastAPI + Next.js 14 backend/frontend monorepo; superseded earlier prototypes (muscle-bros, bros-fullstack).',
+    },
+    {
+      slug: 'ai-studio-multimodal',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Relies on third-party Hugging Face / Llama inference endpoints.',
+    },
+    {
+      slug: 'linkedin-job-bot',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: 'linkedin-job-bot-series',
+      limitations: 'Automated job search & CV matcher paired with companion output repo linkedin-job-bot-results.',
+    },
+    {
+      slug: 'ml-pipeline-end-to-end',
+      status: 'Completed',
+      liveVerified: 0,
+      companion: '',
+      limitations: 'Interactive regression training workbench focused on tabular CSV datasets.',
+    },
+  ];
+  const updProj = db.prepare(`UPDATE projects SET status = ?, live_demo_verified = ?, companion_group = ?, limitations = ? WHERE slug = ?`);
+  for (const pu of projectUpdates) {
+    updProj.run(pu.status, pu.liveVerified, pu.companion, pu.limitations, pu.slug);
+  }
+
+  // Add LMS-COMPLETE if not yet present in projects (has verified Vercel live demo + rich architecture docs)
+  const existingLms = db.prepare(`SELECT id FROM projects WHERE slug = 'lms-complete'`).get();
+  if (!existingLms) {
+    db.prepare(`
+      INSERT INTO projects (
+        slug, title, category, tagline, overview, problem_statement, solution_summary,
+        architecture_notes, frontend_stack, backend_stack, database_stack, ai_models_stack,
+        rag_pipeline_notes, technologies_json, features_json, challenges_json, verified_results_json,
+        cover_image, github_url, live_url, github_repo_name, is_featured, is_published, sort_order,
+        status, live_demo_verified, companion_group, limitations
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 15, 'Completed', 1, 'lms-series', ?)
+    `).run(
+      'lms-complete',
+      'EduSphere / LMS-COMPLETE — Full-Stack Learning Management System',
+      'Full-Stack Development',
+      'Production-documented TypeScript Learning Management System with RBAC roles, course modules, and live Vercel deployment.',
+      'A full-featured Learning Management System engineered with TypeScript, structured role-based access control, comprehensive architecture/security/load-test documentation, Docker support, and a live Vercel deployment.',
+      'Academic and training institutions require structured multi-role workflows for administrators, instructors, and students with clear security boundaries.',
+      'Implemented a modular TypeScript LMS architecture backed by documented PRD, RBAC manual, accessibility audit, and containerized deployment.',
+      'TypeScript full-stack application with role-based permissions, Docker packaging, and Vercel deployment.',
+      'TypeScript, React.js, Tailwind CSS',
+      'Node.js, TypeScript, Authentication',
+      'PostgreSQL / SQL Schema',
+      '',
+      '',
+      JSON.stringify(['TypeScript', 'React.js', 'Tailwind CSS', 'Node.js', 'Authentication', 'Docker']),
+      JSON.stringify([
+        'Role-based access permissions across student, instructor, and admin tiers',
+        'Documented architecture, security QA, and accessibility checklists',
+        'Publicly deployed live Vercel preview',
+      ]),
+      JSON.stringify(['Designing clear permission boundaries across multi-role LMS modules']),
+      JSON.stringify(['Live Vercel deployment and full architecture/security documentation verified in repository.']),
+      '/src/assets/images/project_omnisynth_cover_1795329338795.jpg',
+      'https://github.com/abdullah-v-cmd/LMS-COMPLETE',
+      'https://lms-complete-iota.vercel.app',
+      'LMS-COMPLETE',
+      'Earlier draft LMS repos (edusphere-school-erp-lms, LMS-PORTAL, lms) are archived/unavailable; LMS-COMPLETE is the consolidated live release.'
+    );
+  }
+
+  // 3. Keep GitHub repository status classifications honest & up-to-date
+  const ghUpdates: Array<[string, string, string]> = [
+    ['Omni-Advanced-Version-of-Research-Bot', 'Completed', ''],
+    ['vwatch-ai-traffic-violation-system', 'Completed', ''],
+    ['Rag-System-with-scalable-architecture', 'Completed', 'rag-systems'],
+    ['01-vanilla-rag', 'Completed', 'rag-systems'],
+    ['AI-ML-Engineering-Lab', 'Completed', ''],
+    ['legalai-document-intelligence', 'Completed', ''],
+    ['mlops-engineering-platform', 'Completed', ''],
+    ['zarafit-ai-tryon', 'Experimental', ''],
+    ['luxewatch-ecommerce', 'Completed', ''],
+    ['Scaleable-Ai-api-system', 'Completed', ''],
+    ['gymbro-fullstack-platform', 'Completed', 'muscle-bros-series'],
+    ['AI-Studio-Multi-Modal-AI-Content-Generation-Platform', 'Completed', ''],
+    ['linkedin-job-bot', 'Completed', 'linkedin-job-bot-series'],
+    ['ML-PipeLine-End-to-End', 'Completed', ''],
+    ['LMS-COMPLETE', 'Completed', 'lms-series'],
+    ['production-rag-document-intelligence', 'Experimental', 'rag-systems'],
+    ['Jarvis-Assistant', 'Experimental', ''],
+    ['multi_gan_ai', 'Experimental', ''],
+    ['marketshield-ai', 'Incomplete', ''],
+    ['bros-fullstack', 'Superseded / Companion', 'muscle-bros-series'],
+    ['muscle-bros', 'Superseded / Companion', 'muscle-bros-series'],
+    ['linkedin-job-bot-results', 'Companion Output Repo', 'linkedin-job-bot-series'],
+  ];
+  const updGh = db.prepare(`UPDATE github_repos SET repo_status = ?, companion_group = ? WHERE name = ?`);
+  for (const [name, st, grp] of ghUpdates) {
+    updGh.run(st, grp, name);
+  }
+  const hasNewPortfolioGh = db.prepare(`SELECT id FROM github_repos WHERE name = 'neww-portfolio'`).get();
+  if (!hasNewPortfolioGh) {
+    db.prepare(`
+      INSERT INTO github_repos (name, full_name, description, language, html_url, approval_status, repo_status)
+      VALUES ('neww-portfolio', 'abdullah-v-cmd/neww-portfolio', 'AI Engineer Portfolio Platform source repository', 'TypeScript', 'https://github.com/abdullah-v-cmd/neww-portfolio', 'hidden', 'In Progress')
+    `).run();
+  }
+
+  // 4. Enrich published skills with detailed metadata + auto-link to verified projects & roles
+  const allSkills = db.prepare(`SELECT * FROM skills`).all() as Array<any>;
+  const allProjects = db.prepare(`SELECT id, title, technologies_json, overview, frontend_stack, backend_stack, database_stack, ai_models_stack FROM projects WHERE is_archived = 0`).all() as Array<any>;
+  const allRoles = db.prepare(`SELECT id, title, description, responsibilities_json, skills_json FROM experience_roles`).all() as Array<any>;
+
+  const updSkillMeta = db.prepare(`
+    UPDATE skills
+    SET description = CASE WHEN description = '' THEN ? ELSE description END,
+        what_it_does = CASE WHEN what_it_does = '' THEN ? ELSE what_it_does END,
+        how_abdullah_uses = CASE WHEN how_abdullah_uses = '' THEN ? ELSE how_abdullah_uses END,
+        status = CASE WHEN status = '' THEN ? ELSE status END
+    WHERE id = ?
+  `);
+  const insertProjLink = db.prepare(`INSERT OR IGNORE INTO skill_project_links (skill_id, project_id) VALUES (?, ?)`);
+  const insertRoleLink = db.prepare(`INSERT OR IGNORE INTO skill_experience_links (skill_id, role_id) VALUES (?, ?)`);
+
+  const linkCount = (db.prepare(`SELECT COUNT(*) as c FROM skill_project_links`).get() as { c: number }).c;
+
+  for (const s of allSkills) {
+    const q = s.name.toLowerCase();
+    const matchedProjs = allProjects.filter((p) => {
+      const techs = JSON.parse(p.technologies_json || '[]') as string[];
+      return (
+        techs.some((t) => t.toLowerCase() === q || t.toLowerCase().includes(q)) ||
+        `${p.overview} ${p.frontend_stack} ${p.backend_stack} ${p.database_stack} ${p.ai_models_stack}`.toLowerCase().includes(q)
+      );
+    });
+    const matchedRoles = allRoles.filter((r) => {
+      const rSkills = JSON.parse(r.skills_json || '[]') as string[];
+      return (
+        rSkills.some((rs) => rs.toLowerCase() === q || rs.toLowerCase().includes(q)) ||
+        `${r.description} ${r.responsibilities_json}`.toLowerCase().includes(q)
+      );
+    });
+
+    if (linkCount === 0) {
+      for (const mp of matchedProjs) insertProjLink.run(s.id, mp.id);
+      for (const mr of matchedRoles) insertRoleLink.run(s.id, mr.id);
+    }
+
+    const customMeta = SKILL_PROFILES[s.name];
+    const derivedStatus =
+      matchedRoles.length > 0
+        ? 'Professional Experience'
+        : matchedProjs.length > 0
+        ? 'Used in Projects'
+        : 'Learning / Familiar';
+
+    const desc =
+      customMeta?.description ||
+      `${s.name} — technical capability verified across Abdullah Naveed's ${matchedProjs.length ? 'engineering repositories' : 'skill stack'}.`;
+    const whatItDoes =
+      customMeta?.whatItDoes ||
+      `Supports structured implementation, testing, and system architecture in ${s.name}-based workflows.`;
+    const howUsed =
+      customMeta?.howUsed ||
+      (matchedProjs.length > 0
+        ? `Applied in ${matchedProjs.slice(0, 3).map((p) => p.title.split('—')[0].trim()).join(', ')}.`
+        : matchedRoles.length > 0
+        ? `Applied during verified engineering work (${matchedRoles.map((r) => r.title).join(', ')}).`
+        : 'Listed in Abdullah Naveed’s verified engineering skill universe.');
+
+    updSkillMeta.run(desc, whatItDoes, howUsed, derivedStatus, s.id);
+  }
+
+  // 5. Add industry review queue candidates (unpublished until Admin reviews & approves)
+  const devopsCat = db.prepare(`SELECT id FROM skill_categories WHERE slug = 'devops'`).get() as { id: number } | undefined;
+  const aiCat = db.prepare(`SELECT id FROM skill_categories WHERE slug = 'ai-ml'`).get() as { id: number } | undefined;
+  const genaiCat = db.prepare(`SELECT id FROM skill_categories WHERE slug = 'genai-llm'`).get() as { id: number } | undefined;
+
+  const industryCandidates: Array<{ catId: number | undefined; name: string; desc: string; what: string; how: string; isVerified: number }> = [
+    { catId: aiCat?.id, name: 'PyTorch', desc: 'Deep learning tensor & neural network framework.', what: 'Builds and trains custom neural architectures with dynamic computation graphs.', how: 'Detected in AI-ML-Engineering-Lab neural implementations (awaiting Admin review to publish).', isVerified: 0 },
+    { catId: aiCat?.id, name: 'TensorFlow', desc: 'End-to-end open-source machine learning platform.', what: 'Trains and exports deep neural networks and sequence models.', how: 'Detected in AI-ML-Engineering-Lab implementations (awaiting Admin review to publish).', isVerified: 0 },
+    { catId: aiCat?.id, name: 'scikit-learn', desc: 'Classical machine learning library for Python.', what: 'Provides regression, classification, clustering, and preprocessing pipelines.', how: 'Detected in AI-ML-Engineering-Lab & mlops-engineering-platform (awaiting Admin review).', isVerified: 0 },
+    { catId: genaiCat?.id, name: 'LangGraph', desc: 'Stateful multi-actor agent orchestration graph library.', what: 'Coordinates cyclical tool-calling and multi-agent LLM workflows.', how: 'Detected in OmniSynth 9-agent orchestration stack (awaiting Admin review).', isVerified: 0 },
+    { catId: genaiCat?.id, name: 'FAISS', desc: 'Facebook AI Similarity Search vector indexing engine.', what: 'Performs high-speed dense vector nearest-neighbor retrieval in memory or disk.', how: 'Detected in OmniSynth & production-rag-document-intelligence (awaiting Admin review).', isVerified: 0 },
+    { catId: devopsCat?.id, name: 'MLflow', desc: 'Open-source platform for ML lifecycle & experiment tracking.', what: 'Logs parameters, metrics, artifacts, and model versions cleanly.', how: 'Detected in mlops-engineering-platform (awaiting Admin review).', isVerified: 0 },
+    { catId: devopsCat?.id, name: 'DVC', desc: 'Data Version Control for ML datasets and reproducible pipelines.', what: 'Tracks large datasets and pipeline stages alongside Git.', how: 'Detected in mlops-engineering-platform (awaiting Admin review).', isVerified: 0 },
+    { catId: devopsCat?.id, name: 'Kubernetes', desc: 'Container orchestration platform for automated scaling.', what: 'Manages multi-node container scheduling and rolling deployments.', how: 'Industry benchmark candidate — not yet verified in public repos (Admin Review Required).', isVerified: 0 },
+  ];
+
+  const existsSkill = db.prepare(`SELECT id FROM skills WHERE lower(name) = lower(?)`);
+  const insertCandidate = db.prepare(`
+    INSERT INTO skills (category_id, name, proficiency_label, description, what_it_does, how_abdullah_uses, status, is_published, is_verified, sort_order)
+    VALUES (?, ?, 'Candidate', ?, ?, ?, 'Admin Review Required', 0, ?, 99)
+  `);
+  for (const cand of industryCandidates) {
+    if (cand.catId && !existsSkill.get(cand.name)) {
+      insertCandidate.run(cand.catId, cand.name, cand.desc, cand.what, cand.how, cand.isVerified);
+    }
+  }
+}
+

@@ -1,4 +1,4 @@
-import { Download, MessageSquare } from 'lucide-react';
+import { Download, MessageSquare, FileCheck2 } from 'lucide-react';
 import {
   CertificateItem,
   CompanyExperience,
@@ -14,6 +14,7 @@ interface FullStorySectionProps {
   projects: ProjectItem[];
   certificates: CertificateItem[];
   onDownloadResume: () => void;
+  onRequestCv: () => void;
   onOpenAI: () => void;
   onSelectProject: (proj: ProjectItem) => void;
 }
@@ -25,6 +26,7 @@ export function FullStorySection({
   projects,
   certificates,
   onDownloadResume,
+  onRequestCv,
   onOpenAI,
   onSelectProject,
 }: FullStorySectionProps) {
@@ -126,32 +128,48 @@ export function FullStorySection({
             </div>
           </div>
 
-          {/* Right Quick Summary Card (Video 1 inspired) */}
+          {/* Right Quick Summary Card */}
           <div className="flex flex-col justify-between rounded-xl border border-zinc-800/90 bg-[#0D0F14] p-6 sm:p-8 lg:col-span-4">
             <div className="space-y-5">
               <h3 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
-                Quick Overview
+                Recruiter Access
               </h3>
               <p className="text-sm leading-relaxed text-slate-400">
-                Verified engineering history spanning applied ML/DL model training, Retrieval-Augmented Generation, YOLOv8 real-time vision, and containerized full-stack applications.
+                Verified engineering track record across applied ML/DL model training, Retrieval-Augmented Generation, YOLOv8 real-time vision, and containerized full-stack systems.
               </p>
 
               <div className="space-y-2.5 pt-2">
+                {profile.resume_url ? (
+                  <button
+                    type="button"
+                    onClick={onDownloadResume}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-2.5 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download Public Resume PDF</span>
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
-                  onClick={onDownloadResume}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-2.5 text-xs font-semibold text-zinc-950 transition-colors hover:bg-slate-200"
+                  onClick={onRequestCv}
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-xs font-semibold transition-colors ${
+                    profile.resume_url
+                      ? 'border border-zinc-700 bg-zinc-900 text-white hover:border-[#e50914]'
+                      : 'bg-white text-zinc-950 hover:bg-slate-200'
+                  }`}
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>{profile.resume_url ? 'Download Resume PDF' : 'Request Resume'}</span>
+                  <FileCheck2 className="h-3.5 w-3.5 text-[#e50914]" />
+                  <span>Request Official CV via Email</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={onOpenAI}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:border-zinc-500"
                 >
                   <MessageSquare className="h-3.5 w-3.5 text-[#e50914]" />
-                  <span>Interrogate Dossier via AI</span>
+                  <span>Ask Abdullah AI About Dossier</span>
                 </button>
               </div>
             </div>

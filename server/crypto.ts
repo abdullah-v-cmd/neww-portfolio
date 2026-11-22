@@ -167,5 +167,13 @@ export function validateFileMagicBytes(buffer: Buffer, mimeType: string): boolea
     // DOCX is a ZIP archive starting with PK\x03\x04
     return buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04;
   }
+  if (mimeType === 'video/mp4') {
+    // ISO Base Media File Format: box size + 'ftyp' at offset 4..8
+    return buffer.length >= 12 && buffer.subarray(4, 8).toString('ascii') === 'ftyp';
+  }
+  if (mimeType === 'video/webm') {
+    // EBML header magic bytes: 1A 45 DF A3
+    return buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+  }
   return false;
 }

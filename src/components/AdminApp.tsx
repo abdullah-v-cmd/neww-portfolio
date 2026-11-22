@@ -11,6 +11,7 @@ import {
   Database,
   Mail,
   Inbox,
+  FileCheck2,
   Palette,
   Shield,
   ArrowLeft,
@@ -22,6 +23,7 @@ import { AdminContentTabs } from './admin/AdminContentTabs';
 import { AdminProjectsGithubTab } from './admin/AdminProjectsGithubTab';
 import { AdminAiSmtpTabs } from './admin/AdminAiSmtpTabs';
 import { AdminSecurityThemeTabs } from './admin/AdminSecurityThemeTabs';
+import { AdminCvRequestsTab } from './admin/AdminCvRequestsTab';
 
 interface AdminAppProps {
   onExitAdmin: () => void;
@@ -31,6 +33,7 @@ interface AdminAppProps {
 type AdminTab =
   | 'overview'
   | 'profile'
+  | 'cv_requests'
   | 'experience'
   | 'projects'
   | 'github'
@@ -46,6 +49,7 @@ type AdminTab =
 const NAV_ITEMS: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'profile', label: 'Profile & Resume', icon: User },
+  { id: 'cv_requests', label: 'CV Requests & Resumes', icon: FileCheck2 },
   { id: 'experience', label: 'Experience & Edu', icon: Briefcase },
   { id: 'projects', label: 'Projects', icon: FolderGit2 },
   { id: 'github', label: 'GitHub Sync', icon: Github },
@@ -55,12 +59,11 @@ const NAV_ITEMS: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboa
   { id: 'ai_knowledge', label: 'AI Knowledge', icon: Database },
   { id: 'messages', label: 'Recruiter Inbox', icon: Inbox },
   { id: 'smtp', label: 'Email / SMTP', icon: Mail },
-  { id: 'theme', label: 'Theme & SEO', icon: Palette },
+  { id: 'theme', label: 'Theme & Video BG', icon: Palette },
   { id: 'security', label: 'Security & Audit', icon: Shield },
 ];
 
 export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
-  // Keep bearer token strictly in React memory (never localStorage/sessionStorage)
   const [token, setToken] = useState<string>('');
   const [user, setUser] = useState<any>(null);
   const [authStatus, setAuthStatus] = useState<{ needsBootstrap: boolean; hasEnvOverride: boolean } | null>(null);
@@ -79,6 +82,8 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
   const [providers, setProviders] = useState<any[]>([]);
   const [knowledgeDocs, setKnowledgeDocs] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [cvRequests, setCvRequests] = useState<any[]>([]);
+  const [resumes, setResumes] = useState<any[]>([]);
   const [smtpData, setSmtpData] = useState<any>(null);
   const [theme, setTheme] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -86,7 +91,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
 
   const notify = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 4000);
+    setTimeout(() => setToast(''), 4500);
   };
 
   useEffect(() => {
@@ -113,6 +118,8 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
       provs,
       kb,
       msgs,
+      cvReqs,
+      rvList,
       smtp,
       th,
       sess,
@@ -130,6 +137,8 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
       fetchJson('/api/admin/ai/providers'),
       fetchJson('/api/admin/ai/knowledge'),
       fetchJson('/api/admin/messages'),
+      fetchJson('/api/admin/cv-requests'),
+      fetchJson('/api/admin/resumes'),
       fetchJson('/api/admin/smtp'),
       fetchJson('/api/admin/theme'),
       fetchJson('/api/admin/auth/sessions'),
@@ -148,6 +157,8 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
     if (provs) setProviders(provs);
     if (kb) setKnowledgeDocs(kb);
     if (msgs) setMessages(msgs);
+    if (cvReqs) setCvRequests(cvReqs);
+    if (rvList) setResumes(rvList);
     if (smtp) setSmtpData(smtp);
     if (th) setTheme(th);
     if (sess) setSessions(sess);
@@ -185,7 +196,6 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
 
   return (
     <div className="flex min-h-screen bg-[#07080B] text-slate-100">
-      {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-zinc-800/90 bg-[#0A0C11] md:flex">
         <div className="border-b border-zinc-800/80 px-5 py-4">
           <p className="font-display text-sm font-bold tracking-tight text-white">
@@ -243,7 +253,6 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/90 bg-[#0A0C11] px-6 py-3.5">
           <div className="flex items-center gap-3">
@@ -298,8 +307,18 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
                 const d = await res.json();
                 setSyncingKb(false);
                 await loadAdminData();
-                notify(`Synced ${d.indexedCount} knowledge documents.`);
+                notify(`Synced ${d.indexedCount} knowledge documents (${d.chunkCount || 0} chunks).`);
               }}
+            />
+          ) : null}
+
+          {activeTab === 'cv_requests' ? (
+            <AdminCvRequestsTab
+              token={token}
+              cvRequests={cvRequests}
+              resumes={resumes}
+              onReload={loadAdminData}
+              notify={notify}
             />
           ) : null}
 
@@ -314,6 +333,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
               experience={experience}
               education={education}
               skills={skills}
+              projects={projects}
               certificates={certificates}
               onReload={loadAdminData}
               notify={notify}
@@ -340,6 +360,7 @@ export function AdminApp({ onExitAdmin, onPortfolioChanged }: AdminAppProps) {
               token={token}
               providers={providers}
               knowledgeDocs={knowledgeDocs}
+              kbChunksCount={overview?.stats?.kbChunks || 0}
               messages={messages}
               smtpData={smtpData}
               onReload={loadAdminData}

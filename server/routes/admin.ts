@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import QRCode from 'qrcode';
-import { db, PRIVATE_UPLOADS_DIR, PUBLIC_UPLOADS_DIR } from '../db.ts';
+import { db, getGroqEnvKey, PRIVATE_UPLOADS_DIR, PUBLIC_UPLOADS_DIR } from '../db.ts';
 import {
   authenticateAdminCredentials,
   AuthedRequest,
@@ -26,8 +26,10 @@ import {
   verifyPassword,
 } from '../crypto.ts';
 import {
+  extractTextFromDocumentBuffer,
   queryAbdullahAI,
   rebuildPublicKnowledgeBase,
+  resolveProviderApiKey,
   retrieveKnowledgeChunks,
   testAiProviderConnection,
 } from '../ai.ts';
@@ -45,9 +47,30 @@ const adminUpload = multer({
       'image/jpeg',
       'image/webp',
       'text/plain',
+      'text/markdown',
+      'application/json',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
     if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Unsupported file format. Allowed: PDF, PNG, JPG, WEBP, TXT.'));
+      return cb(new Error('Unsupported file format. Allowed: PDF, DOCX, TXT, MD, PNG, JPG, WEBP.'));
+    }
+    cb(null, true);
+  },
+});
+
+const mediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 40 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      'video/mp4',
+      'video/webm',
+      'image/png',
+      'image/jpeg',
+      'image/webp',
+    ];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error('Unsupported media format. Allowed: MP4, WebM, PNG, JPG, WEBP.'));
     }
     cb(null, true);
   },
@@ -206,7 +229,6 @@ adminRouter.post('/auth/change-password', (req: AuthedRequest, res) => {
       hashPassword(newPassword),
       req.adminUser!.id
     );
-    // Invalidate all other active sessions on password rotation
     db.prepare('UPDATE admin_sessions SET revoked = 1 WHERE user_id = ? AND id != ?').run(
       req.adminUser!.id,
       req.sessionId
@@ -290,13 +312,17 @@ adminRouter.get('/overview', (_req, res) => {
   const rolesCount = (db.prepare('SELECT COUNT(*) as c FROM experience_roles').get() as any).c;
   const unreadMessages = (db.prepare(`SELECT COUNT(*) as c FROM recruiter_conversations WHERE status = 'New'`).get() as any).c;
   const totalConversations = (db.prepare('SELECT COUNT(*) as c FROM recruiter_conversations').get() as any).c;
+  const pendingCvRequests = (db.prepare(`SELECT COUNT(*) as c FROM cv_requests WHERE status IN ('New Request', 'Under Review')`).get() as any).c;
+  const totalCvRequests = (db.prepare('SELECT COUNT(*) as c FROM cv_requests').get() as any).c;
   const aiConversations = (db.prepare('SELECT COUNT(*) as c FROM ai_conversations').get() as any).c;
   const kbDocs = (db.prepare(`SELECT COUNT(*) as c FROM knowledge_documents WHERE status = 'indexed'`).get() as any).c;
+  const kbChunks = (db.prepare(`SELECT COUNT(*) as c FROM knowledge_chunks`).get() as any).c;
   const lastSync = db.prepare('SELECT MAX(last_indexed_at) as ts FROM knowledge_documents').get() as { ts: string | null };
   const activeProvider = db.prepare('SELECT name, model_name, last_status FROM ai_providers WHERE is_active = 1 LIMIT 1').get();
   const smtp = db.prepare('SELECT host, is_enabled FROM smtp_settings WHERE id = 1').get() as any;
   const ghSynced = (db.prepare('SELECT COUNT(*) as c FROM github_repos').get() as any).c;
   const ghPending = (db.prepare(`SELECT COUNT(*) as c FROM github_repos WHERE approval_status = 'discovered'`).get() as any).c;
+  const pendingSkills = (db.prepare(`SELECT COUNT(*) as c FROM skills WHERE status = 'Admin Review Required'`).get() as any).c;
   const recentAudit = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 12').all();
   const projectsByCategory = db
     .prepare('SELECT category, COUNT(*) as count FROM projects WHERE is_archived = 0 GROUP BY category')
@@ -311,11 +337,15 @@ adminRouter.get('/overview', (_req, res) => {
       rolesCount,
       unreadMessages,
       totalConversations,
+      pendingCvRequests,
+      totalCvRequests,
       aiConversations,
       kbDocs,
+      kbChunks,
       lastKbSync: lastSync?.ts || null,
       ghSynced,
       ghPending,
+      pendingSkills,
     },
     activeProvider,
     smtpStatus: {
@@ -328,7 +358,7 @@ adminRouter.get('/overview', (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. PROFILE, ABOUT & RESUME MANAGEMENT
+// 3. PROFILE, ABOUT & RESUME VERSIONS
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/profile', (_req, res) => {
@@ -377,12 +407,308 @@ adminRouter.post('/resume/upload', adminUpload.single('file'), (req: AuthedReque
   fs.writeFileSync(targetPath, req.file.buffer);
   const publicUrl = `/uploads/public/${filename}`;
 
-  db.prepare(`UPDATE profile_settings SET resume_url = ?, resume_filename = ?, updated_at = datetime('now') WHERE id = 1`).run(
-    publicUrl,
-    req.file.originalname.slice(0, 120)
-  );
+  db.transaction(() => {
+    db.prepare(`UPDATE profile_settings SET resume_url = ?, resume_filename = ?, updated_at = datetime('now') WHERE id = 1`).run(
+      publicUrl,
+      req.file!.originalname.slice(0, 120)
+    );
+    db.prepare(`UPDATE resume_versions SET is_default = 0 WHERE scope = 'public'`).run();
+    db.prepare(
+      `INSERT INTO resume_versions (version_name, description, filename, file_url, storage_path, file_size, scope, is_active, is_default)
+       VALUES (?, 'Uploaded via Profile & Resume panel', ?, ?, ?, ?, 'public', 1, 1)`
+    ).run(req.file!.originalname.replace(/\.pdf$/i, '').slice(0, 80), req.file!.originalname.slice(0, 120), publicUrl, targetPath, req.file!.size);
+  })();
+
   logAudit(req.adminUser!.email, 'UPLOAD_RESUME', 'resume', filename, req.file.originalname, req.ip || '');
   res.json({ resume_url: publicUrl, resume_filename: req.file.originalname });
+});
+
+adminRouter.get('/resumes', (_req, res) => {
+  res.json(db.prepare(`SELECT * FROM resume_versions ORDER BY is_archived ASC, is_default DESC, id DESC`).all());
+});
+
+adminRouter.post('/resumes', adminUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'PDF file is required.' });
+  if (req.file.mimetype !== 'application/pdf' || !validateFileMagicBytes(req.file.buffer, 'application/pdf')) {
+    return res.status(400).json({ error: 'Valid PDF file required.' });
+  }
+
+  const versionName = String(req.body?.versionName || req.file.originalname.replace(/\.pdf$/i, '')).trim().slice(0, 100);
+  const description = String(req.body?.description || '').trim().slice(0, 300);
+  const scope = req.body?.scope === 'public' ? 'public' : 'recruiter';
+  const isDefault = req.body?.isDefault === 'true' || req.body?.isDefault === true ? 1 : 0;
+
+  const storedName = `cv_${Date.now()}_${generateSecureToken(4)}.pdf`;
+  const dir = scope === 'public' ? PUBLIC_UPLOADS_DIR : PRIVATE_UPLOADS_DIR;
+  const targetPath = path.resolve(dir, storedName);
+  fs.writeFileSync(targetPath, req.file.buffer);
+  const fileUrl = scope === 'public' ? `/uploads/public/${storedName}` : `/api/admin/resumes/file/${storedName}`;
+
+  const info = db.transaction(() => {
+    if (isDefault) {
+      db.prepare(`UPDATE resume_versions SET is_default = 0`).run();
+    }
+    const inserted = db
+      .prepare(
+        `INSERT INTO resume_versions (version_name, description, filename, file_url, storage_path, file_size, scope, is_active, is_default)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`
+      )
+      .run(versionName, description, req.file!.originalname.slice(0, 120), fileUrl, targetPath, req.file!.size, scope, isDefault);
+
+    if (scope === 'public' && isDefault) {
+      db.prepare(`UPDATE profile_settings SET resume_url = ?, resume_filename = ?, updated_at = datetime('now') WHERE id = 1`).run(
+        fileUrl,
+        req.file!.originalname.slice(0, 120)
+      );
+    }
+    return inserted;
+  })();
+
+  logAudit(req.adminUser!.email, 'CREATE_RESUME_VERSION', 'resume_version', String(info.lastInsertRowid), `${versionName} (${scope})`, req.ip || '');
+  res.status(201).json({ id: info.lastInsertRowid });
+});
+
+adminRouter.put('/resumes/:id', (req: AuthedRequest, res) => {
+  const b = req.body || {};
+  const existing = db.prepare(`SELECT * FROM resume_versions WHERE id = ?`).get(Number(req.params.id)) as any;
+  if (!existing) return res.status(404).json({ error: 'Resume version not found.' });
+
+  const nextDefault = b.is_default ? 1 : 0;
+  db.transaction(() => {
+    if (nextDefault) {
+      db.prepare(`UPDATE resume_versions SET is_default = 0`).run();
+    }
+    db.prepare(
+      `UPDATE resume_versions SET version_name = ?, description = ?, is_active = ?, is_default = ?, is_archived = ? WHERE id = ?`
+    ).run(
+      String(b.version_name || existing.version_name).slice(0, 100),
+      String(b.description ?? existing.description).slice(0, 300),
+      b.is_active === false || b.is_active === 0 ? 0 : 1,
+      nextDefault,
+      b.is_archived ? 1 : 0,
+      existing.id
+    );
+    if (nextDefault && existing.scope === 'public') {
+      db.prepare(`UPDATE profile_settings SET resume_url = ?, resume_filename = ?, updated_at = datetime('now') WHERE id = 1`).run(
+        existing.file_url,
+        existing.filename
+      );
+    }
+  })();
+
+  logAudit(req.adminUser!.email, 'UPDATE_RESUME_VERSION', 'resume_version', req.params.id, String(b.version_name || existing.version_name), req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.get('/resumes/:id/download', (req: AuthedRequest, res) => {
+  const row = db.prepare(`SELECT * FROM resume_versions WHERE id = ?`).get(Number(req.params.id)) as any;
+  if (!row || !row.storage_path || !fs.existsSync(row.storage_path)) {
+    return res.status(404).json({ error: 'Resume PDF file not found on disk.' });
+  }
+  const resolved = path.resolve(row.storage_path);
+  if (!resolved.startsWith(PRIVATE_UPLOADS_DIR + path.sep) && !resolved.startsWith(PUBLIC_UPLOADS_DIR + path.sep)) {
+    return res.status(403).json({ error: 'Access denied.' });
+  }
+  res.setHeader('Content-Disposition', `inline; filename="${row.filename}"`);
+  return res.sendFile(resolved);
+});
+
+adminRouter.delete('/resumes/:id', (req: AuthedRequest, res) => {
+  const row = db.prepare(`SELECT * FROM resume_versions WHERE id = ?`).get(Number(req.params.id)) as any;
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  db.prepare(`DELETE FROM resume_versions WHERE id = ?`).run(row.id);
+  logAudit(req.adminUser!.email, 'DELETE_RESUME_VERSION', 'resume_version', req.params.id, row.version_name, req.ip || '');
+  res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// 3B. RECRUITER CV REQUESTS & EMAIL ATTACHMENT DELIVERY
+// ---------------------------------------------------------------------------
+
+adminRouter.get('/cv-requests', (_req, res) => {
+  const requests = db.prepare(`SELECT * FROM cv_requests ORDER BY id DESC`).all() as any[];
+  const logStmt = db.prepare(`SELECT * FROM cv_delivery_logs WHERE request_id = ? ORDER BY id DESC`);
+  res.json(requests.map((r) => ({ ...r, delivery_logs: logStmt.all(r.id) })));
+});
+
+adminRouter.patch('/cv-requests/:id', (req: AuthedRequest, res) => {
+  const { status, internal_notes } = req.body || {};
+  const allowed = ['New Request', 'Under Review', 'Approved', 'CV Sent', 'Rejected', 'Closed'];
+  const existing = db.prepare(`SELECT * FROM cv_requests WHERE id = ?`).get(Number(req.params.id)) as any;
+  if (!existing) return res.status(404).json({ error: 'CV request not found.' });
+
+  const nextStatus = status && allowed.includes(status) ? status : existing.status;
+  const nextNotes = internal_notes !== undefined ? String(internal_notes).slice(0, 2000) : existing.internal_notes;
+
+  db.prepare(`UPDATE cv_requests SET status = ?, internal_notes = ?, updated_at = datetime('now') WHERE id = ?`).run(
+    nextStatus,
+    nextNotes,
+    existing.id
+  );
+  logAudit(req.adminUser!.email, 'UPDATE_CV_REQUEST', 'cv_request', String(existing.id), `Status: ${nextStatus}`, req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.post('/cv-requests/:id/send-cv', adminUpload.single('file'), async (req: AuthedRequest, res) => {
+  const requestRow = db.prepare(`SELECT * FROM cv_requests WHERE id = ?`).get(Number(req.params.id)) as any;
+  if (!requestRow) return res.status(404).json({ error: 'CV request not found.' });
+
+  const recipientEmail = String(req.body?.recipientEmail || requestRow.email).trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return res.status(400).json({ error: 'Valid recipient email is required.' });
+  }
+
+  const subject = String(req.body?.subject || 'Abdullah Naveed — Requested CV').trim().slice(0, 200);
+  const emailBody = String(
+    req.body?.emailBody ||
+      `Hello ${requestRow.full_name},\n\nThank you for your interest and for reaching out regarding opportunities at ${requestRow.company}. Please find my CV attached as requested.\n\nBest regards,\nAbdullah Naveed`
+  ).trim();
+  const deliveryMethod = req.body?.deliveryMethod === 'link' ? 'link' : 'attachment';
+  const idempotencyKey = String(req.body?.idempotencyKey || '').trim().slice(0, 80);
+
+  // Double-click / duplicate send guard
+  if (idempotencyKey) {
+    const dup = db
+      .prepare(
+        `SELECT id, delivery_status FROM cv_delivery_logs WHERE request_id = ? AND idempotency_key = ? AND created_at >= datetime('now', '-60 seconds')`
+      )
+      .get(requestRow.id, idempotencyKey) as any;
+    if (dup) {
+      return res.status(409).json({ error: 'This CV send action was already submitted. Please refresh.' });
+    }
+  }
+
+  let versionId: number | null = req.body?.resumeVersionId ? Number(req.body.resumeVersionId) : null;
+  let attachmentPath = '';
+  let attachmentName = 'Abdullah_Naveed_CV.pdf';
+  let attachmentBuffer: Buffer | undefined;
+
+  if (req.file) {
+    if (req.file.mimetype !== 'application/pdf' || !validateFileMagicBytes(req.file.buffer, 'application/pdf')) {
+      return res.status(400).json({ error: 'Uploaded custom CV must be a valid PDF.' });
+    }
+    attachmentBuffer = req.file.buffer;
+    attachmentName = req.file.originalname.slice(0, 120);
+
+    const saveAsVersion = req.body?.saveAsVersion === 'true' || req.body?.saveAsVersion === true;
+    const storedName = `cv_custom_${Date.now()}_${generateSecureToken(4)}.pdf`;
+    const targetPath = path.resolve(PRIVATE_UPLOADS_DIR, storedName);
+    fs.writeFileSync(targetPath, req.file.buffer);
+    attachmentPath = targetPath;
+
+    if (saveAsVersion || deliveryMethod === 'link') {
+      const customTitle = String(req.body?.newVersionName || attachmentName.replace(/\.pdf$/i, '')).slice(0, 100);
+      const info = db
+        .prepare(
+          `INSERT INTO resume_versions (version_name, description, filename, file_url, storage_path, file_size, scope, is_active, is_default)
+           VALUES (?, ?, ?, ?, ?, ?, 'recruiter', 1, 0)`
+        )
+        .run(
+          customTitle,
+          saveAsVersion ? `Saved during CV delivery to ${requestRow.company}` : 'Temporary custom attachment for link delivery',
+          attachmentName,
+          `/api/admin/resumes/file/${storedName}`,
+          targetPath,
+          req.file.size
+        );
+      versionId = Number(info.lastInsertRowid);
+    }
+  } else if (versionId) {
+    const ver = db.prepare(`SELECT * FROM resume_versions WHERE id = ?`).get(versionId) as any;
+    if (!ver || !ver.storage_path || !fs.existsSync(ver.storage_path)) {
+      return res.status(404).json({ error: 'Selected CV version PDF was not found on disk.' });
+    }
+    attachmentPath = ver.storage_path;
+    attachmentName = ver.filename;
+  } else {
+    return res.status(400).json({ error: 'Select an existing CV version OR upload a PDF attachment.' });
+  }
+
+  const attempts = (
+    db.prepare(`SELECT COUNT(*) as c FROM cv_delivery_logs WHERE request_id = ?`).get(requestRow.id) as { c: number }
+  ).c;
+  const attemptNumber = attempts + 1;
+
+  // Determine whether to attach directly or send secure 7-day expiring download link
+  const fileSize = attachmentBuffer ? attachmentBuffer.length : fs.statSync(attachmentPath).size;
+  const useLinkFallback = deliveryMethod === 'link' || fileSize > 14 * 1024 * 1024;
+  const downloadToken = useLinkFallback ? generateSecureToken(20) : '';
+  const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+  const finalBody = useLinkFallback
+    ? `${emailBody}\n\nSecure CV Download Link (valid for 7 days):\n${baseUrl}/api/public/cv-download/${downloadToken}`
+    : emailBody;
+
+  const smtpResult = await sendEmailViaSmtp({
+    to: recipientEmail,
+    subject,
+    text: finalBody,
+    attachments: useLinkFallback
+      ? undefined
+      : [
+          attachmentBuffer
+            ? { filename: attachmentName, content: attachmentBuffer, contentType: 'application/pdf' }
+            : { filename: attachmentName, path: attachmentPath, contentType: 'application/pdf' },
+        ],
+  });
+
+  const deliveryStatus = smtpResult.ok ? 'Accepted by SMTP provider' : 'Failed';
+
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO cv_delivery_logs (
+        request_id, resume_version_id, custom_attachment_name, recipient_email, subject, email_body,
+        sent_by_admin, attempt_number, delivery_status, error_message, message_id, idempotency_key, download_token
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      requestRow.id,
+      versionId,
+      req.file ? attachmentName : '',
+      recipientEmail,
+      subject,
+      finalBody,
+      req.adminUser!.email,
+      attemptNumber,
+      deliveryStatus,
+      smtpResult.ok ? '' : smtpResult.message,
+      smtpResult.messageId || '',
+      idempotencyKey,
+      downloadToken
+    );
+
+    if (smtpResult.ok) {
+      db.prepare(
+        `UPDATE cv_requests SET status = 'CV Sent', delivery_status = ?, updated_at = datetime('now') WHERE id = ?`
+      ).run(deliveryStatus, requestRow.id);
+    } else {
+      // NEVER fabricate "CV Sent" when SMTP failed or is unconfigured
+      db.prepare(
+        `UPDATE cv_requests SET delivery_status = 'Failed', updated_at = datetime('now') WHERE id = ?`
+      ).run(requestRow.id);
+    }
+  })();
+
+  logAudit(
+    req.adminUser!.email,
+    smtpResult.ok ? 'SEND_CV_SUCCESS' : 'SEND_CV_FAILED',
+    'cv_request',
+    String(requestRow.id),
+    `${recipientEmail}: ${smtpResult.message}`,
+    req.ip || ''
+  );
+
+  if (!smtpResult.ok) {
+    return res.status(502).json({
+      ok: false,
+      deliveryStatus: 'Failed',
+      error: smtpResult.message,
+    });
+  }
+
+  return res.json({
+    ok: true,
+    deliveryStatus,
+    message: `CV delivered (${deliveryStatus}) to ${recipientEmail}.`,
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -441,6 +767,12 @@ adminRouter.put('/companies/:id', (req: AuthedRequest, res) => {
     Number(req.params.id)
   );
   logAudit(req.adminUser!.email, 'UPDATE_COMPANY', 'company', req.params.id, String(b.name || ''), req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.delete('/companies/:id', (req: AuthedRequest, res) => {
+  db.prepare('DELETE FROM companies WHERE id = ?').run(Number(req.params.id));
+  logAudit(req.adminUser!.email, 'DELETE_COMPANY', 'company', req.params.id, '', req.ip || '');
   res.json({ ok: true });
 });
 
@@ -533,7 +865,7 @@ adminRouter.put('/education/:id', (req: AuthedRequest, res) => {
     String(b.start_date || ''),
     String(b.end_date || ''),
     String(b.details || ''),
-    b.is_public ? 1 : 0,
+    b.is_public === false || b.is_public === 0 ? 0 : 1,
     Number(b.sort_order) || 0,
     Number(req.params.id)
   );
@@ -541,25 +873,64 @@ adminRouter.put('/education/:id', (req: AuthedRequest, res) => {
   res.json({ ok: true });
 });
 
+adminRouter.delete('/education/:id', (req: AuthedRequest, res) => {
+  db.prepare('DELETE FROM education WHERE id = ?').run(Number(req.params.id));
+  logAudit(req.adminUser!.email, 'DELETE_EDUCATION', 'education', req.params.id, '', req.ip || '');
+  res.json({ ok: true });
+});
+
 // ---------------------------------------------------------------------------
-// 5. SKILLS MANAGEMENT
+// 5. SKILLS MANAGEMENT + RELATIONSHIPS + INDUSTRY REVIEW QUEUE
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/skills', (_req, res) => {
   const cats = db.prepare('SELECT * FROM skill_categories ORDER BY sort_order ASC').all() as any[];
-  const stmt = db.prepare('SELECT * FROM skills WHERE category_id = ? ORDER BY sort_order ASC');
-  res.json(cats.map((c) => ({ ...c, skills: stmt.all(c.id) })));
+  const stmt = db.prepare('SELECT * FROM skills WHERE category_id = ? ORDER BY is_published DESC, sort_order ASC, id ASC');
+  const projLinks = db.prepare('SELECT skill_id, project_id FROM skill_project_links').all() as Array<{ skill_id: number; project_id: number }>;
+  const roleLinks = db.prepare('SELECT skill_id, role_id FROM skill_experience_links').all() as Array<{ skill_id: number; role_id: number }>;
+
+  const projMap = new Map<number, number[]>();
+  for (const l of projLinks) {
+    const arr = projMap.get(l.skill_id) || [];
+    arr.push(l.project_id);
+    projMap.set(l.skill_id, arr);
+  }
+  const roleMap = new Map<number, number[]>();
+  for (const l of roleLinks) {
+    const arr = roleMap.get(l.skill_id) || [];
+    arr.push(l.role_id);
+    roleMap.set(l.skill_id, arr);
+  }
+
+  res.json(
+    cats.map((c) => ({
+      ...c,
+      skills: (stmt.all(c.id) as any[]).map((s) => ({
+        ...s,
+        linked_project_ids: projMap.get(s.id) || [],
+        linked_role_ids: roleMap.get(s.id) || [],
+      })),
+    }))
+  );
 });
 
 adminRouter.post('/skills', (req: AuthedRequest, res) => {
   const b = req.body || {};
   const info = db
-    .prepare(`INSERT INTO skills (category_id, name, proficiency_label, is_published, sort_order) VALUES (?, ?, ?, ?, ?)`)
+    .prepare(
+      `INSERT INTO skills (category_id, name, proficiency_label, description, what_it_does, how_abdullah_uses, status, is_published, is_verified, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
     .run(
       Number(b.category_id),
       String(b.name || '').trim(),
       String(b.proficiency_label || '').trim(),
+      String(b.description || '').trim(),
+      String(b.what_it_does || '').trim(),
+      String(b.how_abdullah_uses || '').trim(),
+      String(b.status || 'Used in Projects'),
       b.is_published === false ? 0 : 1,
+      b.is_verified === false ? 0 : 1,
       Number(b.sort_order) || 0
     );
   logAudit(req.adminUser!.email, 'CREATE_SKILL', 'skill', String(info.lastInsertRowid), String(b.name || ''), req.ip || '');
@@ -568,15 +939,55 @@ adminRouter.post('/skills', (req: AuthedRequest, res) => {
 
 adminRouter.put('/skills/:id', (req: AuthedRequest, res) => {
   const b = req.body || {};
-  db.prepare(`UPDATE skills SET category_id = ?, name = ?, proficiency_label = ?, is_published = ?, sort_order = ? WHERE id = ?`).run(
-    Number(b.category_id),
-    String(b.name || '').trim(),
-    String(b.proficiency_label || '').trim(),
-    b.is_published ? 1 : 0,
-    Number(b.sort_order) || 0,
-    Number(req.params.id)
+  const existing = db.prepare('SELECT * FROM skills WHERE id = ?').get(Number(req.params.id)) as any;
+  if (!existing) return res.status(404).json({ error: 'Skill not found.' });
+
+  db.prepare(
+    `UPDATE skills SET category_id = ?, name = ?, proficiency_label = ?, description = ?, what_it_does = ?, how_abdullah_uses = ?, status = ?, is_published = ?, is_verified = ?, sort_order = ? WHERE id = ?`
+  ).run(
+    Number(b.category_id || existing.category_id),
+    String(b.name || existing.name).trim(),
+    String(b.proficiency_label ?? existing.proficiency_label).trim(),
+    String(b.description ?? existing.description).trim(),
+    String(b.what_it_does ?? existing.what_it_does).trim(),
+    String(b.how_abdullah_uses ?? existing.how_abdullah_uses).trim(),
+    String(b.status ?? existing.status),
+    b.is_published !== undefined ? (b.is_published ? 1 : 0) : existing.is_published,
+    b.is_verified !== undefined ? (b.is_verified ? 1 : 0) : existing.is_verified,
+    Number(b.sort_order ?? existing.sort_order),
+    existing.id
   );
-  logAudit(req.adminUser!.email, 'UPDATE_SKILL', 'skill', req.params.id, String(b.name || ''), req.ip || '');
+  logAudit(req.adminUser!.email, 'UPDATE_SKILL', 'skill', req.params.id, String(b.name || existing.name), req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.put('/skills/:id/links', (req: AuthedRequest, res) => {
+  const skillId = Number(req.params.id);
+  const projectIds = Array.isArray(req.body?.project_ids) ? req.body.project_ids.map(Number).filter(Boolean) : [];
+  const roleIds = Array.isArray(req.body?.role_ids) ? req.body.role_ids.map(Number).filter(Boolean) : [];
+
+  db.transaction(() => {
+    db.prepare('DELETE FROM skill_project_links WHERE skill_id = ?').run(skillId);
+    db.prepare('DELETE FROM skill_experience_links WHERE skill_id = ?').run(skillId);
+    const insP = db.prepare('INSERT OR IGNORE INTO skill_project_links (skill_id, project_id) VALUES (?, ?)');
+    const insR = db.prepare('INSERT OR IGNORE INTO skill_experience_links (skill_id, role_id) VALUES (?, ?)');
+    for (const pid of projectIds) insP.run(skillId, pid);
+    for (const rid of roleIds) insR.run(skillId, rid);
+  })();
+
+  logAudit(req.adminUser!.email, 'UPDATE_SKILL_LINKS', 'skill', String(skillId), `${projectIds.length} projects, ${roleIds.length} roles`, req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.post('/skills/:id/approve', (req: AuthedRequest, res) => {
+  const skill = db.prepare('SELECT * FROM skills WHERE id = ?').get(Number(req.params.id)) as any;
+  if (!skill) return res.status(404).json({ error: 'Skill not found.' });
+  const nextStatus = String(req.body?.status || 'Used in Projects');
+  db.prepare(`UPDATE skills SET is_verified = 1, is_published = 1, proficiency_label = 'Verified', status = ? WHERE id = ?`).run(
+    nextStatus,
+    skill.id
+  );
+  logAudit(req.adminUser!.email, 'APPROVE_SKILL', 'skill', String(skill.id), `${skill.name} (${nextStatus})`, req.ip || '');
   res.json({ ok: true });
 });
 
@@ -591,7 +1002,7 @@ adminRouter.delete('/skills/:id', (req: AuthedRequest, res) => {
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/projects', (_req, res) => {
-  const rows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, id DESC').all() as any[];
+  const rows = db.prepare('SELECT * FROM projects ORDER BY is_archived ASC, sort_order ASC, id DESC').all() as any[];
   res.json(
     rows.map((p) => ({
       ...p,
@@ -605,10 +1016,12 @@ adminRouter.get('/projects', (_req, res) => {
 
 adminRouter.post('/projects', (req: AuthedRequest, res) => {
   const b = req.body || {};
-  const slug = String(b.slug || b.title || 'project')
+  const baseSlug = String(b.slug || b.title || 'project')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+  const slugExists = db.prepare('SELECT id FROM projects WHERE slug = ?').get(baseSlug);
+  const slug = slugExists ? `${baseSlug}-${Date.now().toString().slice(-4)}` : baseSlug;
 
   const info = db
     .prepare(`
@@ -616,8 +1029,9 @@ adminRouter.post('/projects', (req: AuthedRequest, res) => {
         slug, title, category, tagline, overview, problem_statement, solution_summary,
         architecture_notes, frontend_stack, backend_stack, database_stack, ai_models_stack,
         rag_pipeline_notes, technologies_json, features_json, challenges_json, verified_results_json,
-        cover_image, github_url, live_url, github_repo_name, company_id, is_featured, is_published, sort_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        cover_image, github_url, live_url, github_repo_name, company_id, is_featured, is_published, sort_order,
+        status, limitations, companion_group, live_demo_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       slug,
@@ -644,7 +1058,11 @@ adminRouter.post('/projects', (req: AuthedRequest, res) => {
       b.company_id ? Number(b.company_id) : null,
       b.is_featured ? 1 : 0,
       b.is_published ? 1 : 0,
-      Number(b.sort_order) || 0
+      Number(b.sort_order) || 0,
+      String(b.status || 'Completed'),
+      String(b.limitations || ''),
+      String(b.companion_group || ''),
+      b.live_demo_verified ? 1 : 0
     );
 
   logAudit(req.adminUser!.email, 'CREATE_PROJECT', 'project', String(info.lastInsertRowid), String(b.title || ''), req.ip || '');
@@ -659,7 +1077,7 @@ adminRouter.put('/projects/:id', (req: AuthedRequest, res) => {
       architecture_notes = ?, frontend_stack = ?, backend_stack = ?, database_stack = ?, ai_models_stack = ?,
       rag_pipeline_notes = ?, technologies_json = ?, features_json = ?, challenges_json = ?, verified_results_json = ?,
       cover_image = ?, github_url = ?, live_url = ?, is_featured = ?, is_published = ?, is_archived = ?, sort_order = ?,
-      updated_at = datetime('now')
+      status = ?, limitations = ?, companion_group = ?, live_demo_verified = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
     String(b.title || ''),
@@ -685,9 +1103,19 @@ adminRouter.put('/projects/:id', (req: AuthedRequest, res) => {
     b.is_published ? 1 : 0,
     b.is_archived ? 1 : 0,
     Number(b.sort_order) || 0,
+    String(b.status || 'Completed'),
+    String(b.limitations || ''),
+    String(b.companion_group || ''),
+    b.live_demo_verified ? 1 : 0,
     Number(req.params.id)
   );
   logAudit(req.adminUser!.email, 'UPDATE_PROJECT', 'project', req.params.id, String(b.title || ''), req.ip || '');
+  res.json({ ok: true });
+});
+
+adminRouter.post('/projects/:id/restore', (req: AuthedRequest, res) => {
+  db.prepare(`UPDATE projects SET is_archived = 0, updated_at = datetime('now') WHERE id = ?`).run(Number(req.params.id));
+  logAudit(req.adminUser!.email, 'RESTORE_PROJECT', 'project', req.params.id, '', req.ip || '');
   res.json({ ok: true });
 });
 
@@ -718,8 +1146,8 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
     }
     const repos = (await ghRes.json()) as any[];
     const upsert = db.prepare(`
-      INSERT INTO github_repos (name, full_name, description, language, html_url, homepage, stars, forks, updated_at_gh, topics_json, approval_status, synced_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'discovered', datetime('now'))
+      INSERT INTO github_repos (name, full_name, description, language, html_url, homepage, stars, forks, updated_at_gh, topics_json, approval_status, repo_status, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'discovered', ?, datetime('now'))
       ON CONFLICT(name) DO UPDATE SET
         description = COALESCE(NULLIF(excluded.description, ''), github_repos.description),
         language = COALESCE(excluded.language, github_repos.language),
@@ -733,6 +1161,7 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
 
     db.transaction(() => {
       for (const r of repos) {
+        const inferredStatus = r.archived ? 'Archived' : r.size === 0 ? 'Incomplete' : 'Verified';
         upsert.run(
           r.name,
           r.full_name,
@@ -743,7 +1172,8 @@ adminRouter.post('/github/sync', async (req: AuthedRequest, res) => {
           r.stargazers_count || 0,
           r.forks_count || 0,
           r.updated_at || '',
-          JSON.stringify(r.topics || [])
+          JSON.stringify(r.topics || []),
+          inferredStatus
         );
       }
     })();
@@ -759,7 +1189,6 @@ adminRouter.post('/github/repos/:id/approve', async (req: AuthedRequest, res) =>
   const repo = db.prepare('SELECT * FROM github_repos WHERE id = ?').get(Number(req.params.id)) as any;
   if (!repo) return res.status(404).json({ error: 'Repository not found.' });
 
-  // Fetch README excerpt for honest inspection before draft creation
   let readmeExcerpt = repo.readme_excerpt || '';
   try {
     const readmeRes = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/main/README.md`, {
@@ -781,8 +1210,8 @@ adminRouter.post('/github/repos/:id/approve', async (req: AuthedRequest, res) =>
       .prepare(`
         INSERT INTO projects (
           slug, title, category, tagline, overview, technologies_json,
-          cover_image, github_url, live_url, github_repo_name, is_featured, is_published
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+          cover_image, github_url, live_url, github_repo_name, is_featured, is_published, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
       `)
       .run(
         slug,
@@ -794,7 +1223,8 @@ adminRouter.post('/github/repos/:id/approve', async (req: AuthedRequest, res) =>
         '/src/assets/images/project_mlops_cover_1795329338117.jpg',
         repo.html_url,
         repo.homepage || '',
-        repo.name
+        repo.name,
+        repo.repo_status || 'In Progress'
       );
     projectId = Number(info.lastInsertRowid);
   }
@@ -819,7 +1249,7 @@ adminRouter.post('/github/repos/:id/hide', (req: AuthedRequest, res) => {
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/certificates', (_req, res) => {
-  const rows = db.prepare('SELECT * FROM certificates ORDER BY sort_order ASC, id DESC').all() as any[];
+  const rows = db.prepare('SELECT * FROM certificates ORDER BY is_archived ASC, sort_order ASC, id DESC').all() as any[];
   res.json(rows.map((c) => ({ ...c, skills: JSON.parse(c.skills_json || '[]') })));
 });
 
@@ -889,15 +1319,24 @@ adminRouter.put('/certificates/:id', (req: AuthedRequest, res) => {
   res.json({ ok: true });
 });
 
+adminRouter.delete('/certificates/:id', (req: AuthedRequest, res) => {
+  db.prepare('DELETE FROM certificates WHERE id = ?').run(Number(req.params.id));
+  logAudit(req.adminUser!.email, 'DELETE_CERTIFICATE', 'certificate', req.params.id, '', req.ip || '');
+  res.json({ ok: true });
+});
+
 // ---------------------------------------------------------------------------
 // 8. AI PROVIDERS & KNOWLEDGE BASE MANAGEMENT
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/ai/providers', (_req, res) => {
   const rows = db.prepare('SELECT * FROM ai_providers ORDER BY is_active DESC, id ASC').all() as any[];
+  const hasGroqSecret = Boolean(getGroqEnvKey());
   res.json(
     rows.map((p) => {
       const dec = decryptSecret(p.api_key_enc);
+      const resolved = resolveProviderApiKey(p);
+      const isGroq = p.base_url?.toLowerCase().includes('groq.com') || p.name?.toLowerCase().includes('groq');
       return {
         id: p.id,
         name: p.name,
@@ -905,8 +1344,14 @@ adminRouter.get('/ai/providers', (_req, res) => {
         base_url: p.base_url,
         model_name: p.model_name,
         embedding_model: p.embedding_model,
-        has_api_key: Boolean(dec) || (p.provider_type === 'gemini' && Boolean(process.env.GEMINI_API_KEY)),
-        masked_api_key: dec ? maskSecret(dec) : p.provider_type === 'gemini' && process.env.GEMINI_API_KEY ? 'Server Env Key Active' : '',
+        has_api_key: Boolean(resolved),
+        masked_api_key: dec
+          ? maskSecret(dec)
+          : p.provider_type === 'gemini' && process.env.GEMINI_API_KEY
+          ? 'Server Env Key Active (GEMINI_API_KEY)'
+          : isGroq && hasGroqSecret
+          ? 'Server Secret Active (groq-api)'
+          : '',
         is_active: Boolean(p.is_active),
         is_fallback: Boolean(p.is_fallback),
         max_tokens: p.max_tokens,
@@ -938,7 +1383,7 @@ adminRouter.post('/ai/providers', requireRole(['owner', 'admin']), (req: AuthedR
       String(b.model_name || ''),
       String(b.embedding_model || 'local-semantic-v1'),
       keyEnc,
-      Number(b.max_tokens) || 1024,
+      Number(b.max_tokens) || 1400,
       Number(b.rate_limit_rpm) || 30,
       keyEnc ? 'configured' : 'awaiting_api_key'
     );
@@ -1008,15 +1453,46 @@ adminRouter.post('/ai/knowledge', (req: AuthedRequest, res) => {
   res.status(201).json({ id: info.lastInsertRowid, ...summary });
 });
 
+adminRouter.post('/ai/knowledge/upload', adminUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Document file required (PDF, DOCX, TXT, MD).' });
+
+  const safeMime = req.file.mimetype;
+  if (safeMime === 'application/pdf' || safeMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (!validateFileMagicBytes(req.file.buffer, safeMime)) {
+      return res.status(400).json({ error: 'Document file signature verification failed.' });
+    }
+  }
+
+  const extracted = extractTextFromDocumentBuffer(req.file.buffer, safeMime, req.file.originalname);
+  const manualNotes = String(req.body?.content || '').trim();
+  const combinedContent = [manualNotes, extracted.text].filter(Boolean).join('\n\n').trim();
+  if (!combinedContent) {
+    return res.status(400).json({
+      error: extracted.note || 'No readable text could be extracted from this file. Add a summary in the content box.',
+    });
+  }
+
+  const title = String(req.body?.title || req.file.originalname).trim().slice(0, 140);
+  const safeScope = req.body?.scope === 'public' ? 'public' : 'private';
+
+  const info = db
+    .prepare(`INSERT INTO knowledge_documents (source_type, source_id, title, content, scope, status) VALUES ('custom', ?, ?, ?, ?, 'pending')`)
+    .run(generateSecureToken(4), title, combinedContent, safeScope);
+  const summary = rebuildPublicKnowledgeBase();
+  logAudit(req.adminUser!.email, 'UPLOAD_KNOWLEDGE_FILE', 'knowledge', String(info.lastInsertRowid), `${safeScope}: ${title}`, req.ip || '');
+  res.status(201).json({ id: info.lastInsertRowid, extractedChars: extracted.text.length, note: extracted.note, ...summary });
+});
+
 adminRouter.delete('/ai/knowledge/:id', (req: AuthedRequest, res) => {
   db.prepare('DELETE FROM knowledge_documents WHERE id = ?').run(Number(req.params.id));
+  rebuildPublicKnowledgeBase();
   logAudit(req.adminUser!.email, 'DELETE_KNOWLEDGE_DOC', 'knowledge', req.params.id, '', req.ip || '');
   res.json({ ok: true });
 });
 
 adminRouter.post('/ai/knowledge/sync', (req: AuthedRequest, res) => {
   const result = rebuildPublicKnowledgeBase();
-  logAudit(req.adminUser!.email, 'SYNC_AI_KNOWLEDGE', 'knowledge', 'all', `Indexed ${result.indexedCount} docs`, req.ip || '');
+  logAudit(req.adminUser!.email, 'SYNC_AI_KNOWLEDGE', 'knowledge', 'all', `Indexed ${result.indexedCount} docs / ${result.chunkCount} chunks`, req.ip || '');
   res.json(result);
 });
 
@@ -1163,7 +1639,7 @@ adminRouter.post('/messages/:id/reply', async (req: AuthedRequest, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 10. THEME / VISUAL SETTINGS, AUDIT LOGS, PRIVATE FILES & BACKUP
+// 10. THEME / VIDEO BACKGROUND SETTINGS, AUDIT LOGS, PRIVATE FILES & BACKUP
 // ---------------------------------------------------------------------------
 
 adminRouter.get('/theme', (_req, res) => {
@@ -1172,7 +1648,34 @@ adminRouter.get('/theme', (_req, res) => {
     ...row,
     section_order: JSON.parse(row.section_order_json || '[]'),
     hidden_sections: JSON.parse(row.hidden_sections_json || '[]'),
+    profile_backgrounds: JSON.parse(row.profile_backgrounds_json || '{}'),
   });
+});
+
+adminRouter.post('/theme/upload-media', mediaUpload.single('file'), (req: AuthedRequest, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Media file required (MP4, WebM, PNG, JPG, WEBP).' });
+  if (!validateFileMagicBytes(req.file.buffer, req.file.mimetype)) {
+    return res.status(400).json({ error: 'Uploaded media file signature failed validation.' });
+  }
+  const extMap: Record<string, string> = {
+    'video/mp4': '.mp4',
+    'video/webm': '.webm',
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/webp': '.webp',
+  };
+  const ext = extMap[req.file.mimetype] || '.bin';
+  const storedName = `bg_${Date.now()}_${generateSecureToken(4)}${ext}`;
+  const targetPath = path.resolve(PUBLIC_UPLOADS_DIR, storedName);
+  fs.writeFileSync(targetPath, req.file.buffer);
+  const url = `/uploads/public/${storedName}`;
+
+  db.prepare(
+    `INSERT INTO uploaded_files (filename, original_name, mime_type, size_bytes, scope, path_key, uploaded_by) VALUES (?, ?, ?, ?, 'public', ?, ?)`
+  ).run(storedName, req.file.originalname.slice(0, 120), req.file.mimetype, req.file.size, targetPath, req.adminUser!.email);
+
+  logAudit(req.adminUser!.email, 'UPLOAD_THEME_MEDIA', 'theme_media', storedName, `${req.file.mimetype} (${Math.round(req.file.size / 1024)} KB)`, req.ip || '');
+  res.json({ url, mimeType: req.file.mimetype, sizeBytes: req.file.size });
 });
 
 adminRouter.put('/theme', (req: AuthedRequest, res) => {
@@ -1182,6 +1685,9 @@ adminRouter.put('/theme', (req: AuthedRequest, res) => {
       accent_color = ?, secondary_accent = ?, intro_enabled = ?, profile_selector_enabled = ?,
       three_d_enabled = ?, animation_intensity = ?, hero_cta_primary = ?, hero_cta_secondary = ?,
       section_order_json = ?, hidden_sections_json = ?, seo_title = ?, seo_description = ?,
+      bg_mode = ?, bg_video_url = ?, bg_mobile_video_url = ?, bg_poster_url = ?,
+      bg_image_url = ?, bg_gradient_css = ?, bg_overlay_opacity = ?, profile_backgrounds_json = ?,
+      rag_top_k = ?, rag_chunk_size = ?, rag_hybrid_weight = ?,
       updated_at = datetime('now')
     WHERE id = 1
   `).run(
@@ -1196,9 +1702,20 @@ adminRouter.put('/theme', (req: AuthedRequest, res) => {
     JSON.stringify(Array.isArray(b.section_order) ? b.section_order : ['projects', 'skills', 'experience', 'credentials', 'about', 'contact']),
     JSON.stringify(Array.isArray(b.hidden_sections) ? b.hidden_sections : []),
     String(b.seo_title || ''),
-    String(b.seo_description || '')
+    String(b.seo_description || ''),
+    ['default', 'gradient', 'image', 'video'].includes(b.bg_mode) ? b.bg_mode : 'default',
+    String(b.bg_video_url || ''),
+    String(b.bg_mobile_video_url || ''),
+    String(b.bg_poster_url || ''),
+    String(b.bg_image_url || ''),
+    String(b.bg_gradient_css || ''),
+    Math.min(0.95, Math.max(0.1, Number(b.bg_overlay_opacity ?? 0.68))),
+    JSON.stringify(b.profile_backgrounds && typeof b.profile_backgrounds === 'object' ? b.profile_backgrounds : {}),
+    Math.min(12, Math.max(3, Number(b.rag_top_k || 6))),
+    Math.min(2000, Math.max(350, Number(b.rag_chunk_size || 800))),
+    Math.min(0.95, Math.max(0.2, Number(b.rag_hybrid_weight ?? 0.65)))
   );
-  logAudit(req.adminUser!.email, 'UPDATE_THEME', 'theme', '1', 'Updated visual/SEO configuration', req.ip || '');
+  logAudit(req.adminUser!.email, 'UPDATE_THEME', 'theme', '1', `Mode: ${b.bg_mode || 'default'}`, req.ip || '');
   res.json({ ok: true });
 });
 
@@ -1231,11 +1748,56 @@ adminRouter.get('/backup/export', requireRole(['owner']), (req: AuthedRequest, r
     education: db.prepare('SELECT * FROM education').all(),
     skill_categories: db.prepare('SELECT * FROM skill_categories').all(),
     skills: db.prepare('SELECT * FROM skills').all(),
+    skill_project_links: db.prepare('SELECT * FROM skill_project_links').all(),
+    skill_experience_links: db.prepare('SELECT * FROM skill_experience_links').all(),
     projects: db.prepare('SELECT * FROM projects').all(),
     certificates: db.prepare('SELECT * FROM certificates').all(),
-    knowledge_documents: db.prepare('SELECT id, source_type, source_id, title, content, scope FROM knowledge_documents').all(),
+    knowledge_documents: db.prepare(`SELECT id, source_type, source_id, title, content, scope FROM knowledge_documents WHERE source_type = 'custom'`).all(),
   };
   logAudit(req.adminUser!.email, 'EXPORT_BACKUP', 'database', 'full', 'Exported non-secret portfolio JSON backup', req.ip || '');
   res.setHeader('Content-Disposition', `attachment; filename="abdullah-portfolio-backup-${Date.now()}.json"`);
   res.json(backup);
+});
+
+adminRouter.post('/backup/restore', requireRole(['owner']), (req: AuthedRequest, res) => {
+  const data = req.body;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.profile) || !Array.isArray(data.projects)) {
+    return res.status(400).json({ error: 'Invalid backup JSON structure.' });
+  }
+  // Safe profile & theme restore without wiping authentication/sessions
+  db.transaction(() => {
+    const p = data.profile[0];
+    if (p) {
+      db.prepare(`
+        UPDATE profile_settings SET
+          full_name = ?, headline = ?, subheadline = ?, bio_short = ?, bio_long = ?,
+          about_what_i_build = ?, about_problem_solving = ?, about_career_goals = ?,
+          location = ?, email = ?, github_url = ?, linkedin_url = ?,
+          availability_enabled = ?, availability_label = ?
+        WHERE id = 1
+      `).run(
+        p.full_name, p.headline, p.subheadline, p.bio_short, p.bio_long,
+        p.about_what_i_build || '', p.about_problem_solving || '', p.about_career_goals || '',
+        p.location, p.email, p.github_url, p.linkedin_url,
+        p.availability_enabled ? 1 : 0, p.availability_label || ''
+      );
+    }
+    const th = Array.isArray(data.theme) ? data.theme[0] : null;
+    if (th) {
+      db.prepare(`
+        UPDATE theme_settings SET
+          accent_color = ?, secondary_accent = ?, intro_enabled = ?, profile_selector_enabled = ?,
+          three_d_enabled = ?, seo_title = ?, seo_description = ?
+        WHERE id = 1
+      `).run(
+        th.accent_color || '#dc2626', th.secondary_accent || '#3b82f6',
+        th.intro_enabled ? 1 : 0, th.profile_selector_enabled ? 1 : 0, th.three_d_enabled ? 1 : 0,
+        th.seo_title || '', th.seo_description || ''
+      );
+    }
+  })();
+
+  rebuildPublicKnowledgeBase();
+  logAudit(req.adminUser!.email, 'RESTORE_BACKUP', 'database', 'partial', 'Restored profile & theme configuration from backup', req.ip || '');
+  res.json({ ok: true });
 });

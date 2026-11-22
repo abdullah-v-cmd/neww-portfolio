@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import { db, PRIVATE_UPLOADS_DIR } from '../db.ts';
 import { queryAbdullahAI } from '../ai.ts';
 import { generateSecureToken, validateFileMagicBytes } from '../crypto.ts';
-import { notifyAdminOfRecruiterMessage } from '../mailer.ts';
+import { notifyAdminOfCvRequest, notifyAdminOfRecruiterMessage } from '../mailer.ts';
 import { rateLimit } from '../auth.ts';
 
 export const publicRouter = Router();
@@ -52,6 +53,27 @@ publicRouter.get('/portfolio', (_req, res) => {
     .prepare('SELECT * FROM education WHERE is_public = 1 ORDER BY sort_order ASC')
     .all();
 
+  const projLinkRows = db.prepare('SELECT skill_id, project_id FROM skill_project_links').all() as Array<{
+    skill_id: number;
+    project_id: number;
+  }>;
+  const roleLinkRows = db.prepare('SELECT skill_id, role_id FROM skill_experience_links').all() as Array<{
+    skill_id: number;
+    role_id: number;
+  }>;
+  const projLinksMap = new Map<number, number[]>();
+  for (const r of projLinkRows) {
+    const arr = projLinksMap.get(r.skill_id) || [];
+    arr.push(r.project_id);
+    projLinksMap.set(r.skill_id, arr);
+  }
+  const roleLinksMap = new Map<number, number[]>();
+  for (const r of roleLinkRows) {
+    const arr = roleLinksMap.get(r.skill_id) || [];
+    arr.push(r.role_id);
+    roleLinksMap.set(r.skill_id, arr);
+  }
+
   const categories = db
     .prepare('SELECT * FROM skill_categories ORDER BY sort_order ASC, id ASC')
     .all() as Array<Record<string, any>>;
@@ -60,7 +82,11 @@ publicRouter.get('/portfolio', (_req, res) => {
   );
   const skillUniverse = categories.map((cat) => ({
     ...cat,
-    skills: skillsStmt.all(cat.id),
+    skills: (skillsStmt.all(cat.id) as Array<Record<string, any>>).map((s) => ({
+      ...s,
+      linked_project_ids: projLinksMap.get(s.id) || [],
+      linked_role_ids: roleLinksMap.get(s.id) || [],
+    })),
   }));
 
   const projects = (
@@ -85,6 +111,7 @@ publicRouter.get('/portfolio', (_req, res) => {
           ...theme,
           section_order: safeJson(theme.section_order_json, []),
           hidden_sections: safeJson(theme.hidden_sections_json, []),
+          profile_backgrounds: safeJson(theme.profile_backgrounds_json, {}),
         }
       : null,
     experience,
@@ -114,7 +141,108 @@ publicRouter.post('/resume/track', (_req, res) => {
   res.json(row || { resume_url: '', resume_downloads: 0 });
 });
 
-publicRouter.post('/ai/chat', rateLimit('ai_chat', 20, 60_000), async (req, res) => {
+// Recruiter CV Request submission (public -> saved in DB, rate limited, duplicate protected)
+publicRouter.post('/cv-requests', rateLimit('cv_request', 5, 300_000), async (req, res) => {
+  const { fullName, company, email, jobTitle, message } = req.body || {};
+
+  if (
+    typeof fullName !== 'string' ||
+    fullName.trim().length < 2 ||
+    typeof company !== 'string' ||
+    company.trim().length < 2 ||
+    typeof email !== 'string' ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  ) {
+    return res.status(400).json({
+      error: 'Full name, company / organization, and a valid professional email address are required.',
+    });
+  }
+
+  const cleanName = fullName.trim().slice(0, 120);
+  const cleanCompany = company.trim().slice(0, 120);
+  const cleanEmail = email.trim().toLowerCase().slice(0, 160);
+  const cleanJobTitle = typeof jobTitle === 'string' ? jobTitle.trim().slice(0, 120) : '';
+  const cleanMessage = typeof message === 'string' ? message.trim().slice(0, 2000) : '';
+
+  const duplicateHash = crypto
+    .createHash('sha256')
+    .update(`${cleanEmail}|${cleanCompany.toLowerCase()}|${cleanJobTitle.toLowerCase()}`)
+    .digest('hex')
+    .slice(0, 24);
+
+  // Prevent accidental double submissions from the same recruiter within 15 minutes
+  const recentDup = db
+    .prepare(
+      `SELECT request_uid FROM cv_requests
+       WHERE duplicate_hash = ? AND created_at >= datetime('now', '-15 minutes')
+       ORDER BY id DESC LIMIT 1`
+    )
+    .get(duplicateHash) as { request_uid: string } | undefined;
+
+  if (recentDup) {
+    return res.status(409).json({
+      error: `A CV request (${recentDup.request_uid}) from your email for ${cleanCompany} was already received recently.`,
+      requestUid: recentDup.request_uid,
+    });
+  }
+
+  const requestUid = `CVR-${generateSecureToken(3).toUpperCase()}`;
+
+  const info = db
+    .prepare(
+      `INSERT INTO cv_requests (request_uid, full_name, company, email, job_title, message, status, delivery_status, duplicate_hash)
+       VALUES (?, ?, ?, ?, ?, ?, 'New Request', 'Pending', ?)`
+    )
+    .run(requestUid, cleanName, cleanCompany, cleanEmail, cleanJobTitle, cleanMessage, duplicateHash);
+
+  // Fire-and-forget SMTP alert to admin if SMTP enabled
+  notifyAdminOfCvRequest({
+    requestUid,
+    fullName: cleanName,
+    company: cleanCompany,
+    email: cleanEmail,
+    jobTitle: cleanJobTitle,
+    message: cleanMessage,
+  }).catch(() => undefined);
+
+  return res.status(201).json({
+    ok: true,
+    id: Number(info.lastInsertRowid),
+    requestUid,
+    message:
+      'Your CV request has been received. Thank you for your interest. I will review your request and respond as soon as possible.',
+  });
+});
+
+// Secure expiring token CV download link (fallback if attachment exceeds size limits or link delivery chosen)
+publicRouter.get('/cv-download/:token', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  if (token.length < 24) return res.status(400).json({ error: 'Invalid download token.' });
+
+  const logRow = db
+    .prepare(
+      `SELECT dl.*, rv.storage_path, rv.filename as version_filename
+       FROM cv_delivery_logs dl
+       LEFT JOIN resume_versions rv ON rv.id = dl.resume_version_id
+       WHERE dl.download_token = ? AND dl.created_at >= datetime('now', '-7 days')
+       ORDER BY dl.id DESC LIMIT 1`
+    )
+    .get(token) as any;
+
+  if (!logRow || !logRow.storage_path || !fs.existsSync(logRow.storage_path)) {
+    return res.status(404).json({ error: 'This CV download link has expired or is no longer available.' });
+  }
+
+  const resolved = path.resolve(logRow.storage_path);
+  if (!resolved.startsWith(PRIVATE_UPLOADS_DIR + path.sep) && !resolved.startsWith(path.resolve(process.cwd(), 'uploads') + path.sep)) {
+    return res.status(403).json({ error: 'Access denied.' });
+  }
+
+  res.setHeader('Content-Disposition', `attachment; filename="${logRow.version_filename || 'Abdullah_Naveed_CV.pdf'}"`);
+  return res.sendFile(resolved);
+});
+
+publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res) => {
   const { message, sessionId, profileMode, stream } = req.body || {};
   if (typeof message !== 'string' || !message.trim() || message.length > 1500) {
     return res.status(400).json({ error: 'Please provide a valid question under 1500 characters.' });
@@ -130,7 +258,7 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 20, 60_000), async (req, res)
   }
 
   const historyRows = db
-    .prepare('SELECT role, content FROM ai_messages WHERE conversation_id = ? ORDER BY id ASC LIMIT 12')
+    .prepare('SELECT role, content FROM ai_messages WHERE conversation_id = ? ORDER BY id ASC LIMIT 14')
     .all(conv.id) as Array<{ role: 'user' | 'assistant'; content: string }>;
 
   db.prepare('INSERT INTO ai_messages (conversation_id, role, content) VALUES (?, ?, ?)').run(
@@ -246,7 +374,6 @@ publicRouter.post('/contact', rateLimit('contact', 6, 300_000), contactUpload.si
     return id;
   })();
 
-  // Fire-and-forget SMTP notification if configured
   notifyAdminOfRecruiterMessage({
     recruiterName: name.trim(),
     recruiterEmail: email.trim(),

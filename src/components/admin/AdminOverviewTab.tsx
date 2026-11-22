@@ -26,12 +26,12 @@ export function AdminOverviewTab({
 
   const cards = [
     { label: 'Published Projects', value: `${stats.publishedProjects} / ${stats.totalProjects}` },
-    { label: 'Verified Certificates', value: stats.totalCertificates },
-    { label: 'Experience Roles', value: `${stats.rolesCount} (${stats.companiesCount} orgs)` },
+    { label: 'Recruiter CV Requests', value: `${stats.pendingCvRequests || 0} pending (${stats.totalCvRequests || 0} total)` },
     { label: 'Unread Recruiter Threads', value: `${stats.unreadMessages} / ${stats.totalConversations}` },
     { label: 'AI Recruiter Sessions', value: stats.aiConversations },
-    { label: 'Indexed Knowledge Docs', value: stats.kbDocs },
+    { label: 'RAG Docs & Chunks', value: `${stats.kbDocs} docs (${stats.kbChunks || 0} chunks)` },
     { label: 'GitHub Repos Tracked', value: `${stats.ghSynced} (${stats.ghPending} pending)` },
+    { label: 'Skill Review Queue', value: `${stats.pendingSkills || 0} pending audit` },
   ];
 
   return (

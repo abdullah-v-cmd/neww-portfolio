@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import {
   ArrowUpRight,
   Download,
+  FileCheck2,
   Menu,
   MessageSquare,
   Play,
@@ -12,10 +13,12 @@ import {
 } from 'lucide-react';
 import { PortfolioPayload, ProfileMode, ProjectItem } from './types/portfolio';
 import { HeroCanvas3D } from './components/HeroCanvas3D';
+import { VideoBackgroundLayer } from './components/VideoBackgroundLayer';
 import { CinematicIntro } from './components/CinematicIntro';
 import { FullStorySection } from './components/FullStorySection';
 import { ProjectCarousel } from './components/ProjectCarousel';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
+import { CvRequestModal } from './components/CvRequestModal';
 import { SkillsUniverse } from './components/SkillsUniverse';
 import { ExperienceTimeline } from './components/ExperienceTimeline';
 import { CredentialsSection } from './components/CredentialsSection';
@@ -26,11 +29,33 @@ import { AdminApp } from './components/AdminApp';
 
 const CONTINUE_EPISODES = [
   { id: 'story', episode: 'Episode 01', title: 'The Full Story', subtitle: 'Principal Dossier' },
-  { id: 'experience', episode: 'Episode 02', title: 'Work Experience', subtitle: '3 Seasons' },
+  { id: 'experience', episode: 'Episode 02', title: 'Work Experience', subtitle: '3 Companies' },
   { id: 'skills', episode: 'Episode 03', title: 'Skill Universe', subtitle: 'Interactive Graph' },
   { id: 'projects', episode: 'Episode 04', title: 'Featured Systems', subtitle: 'Originals & Rails' },
-  { id: 'credentials', episode: 'Episode 05', title: 'Certificates', subtitle: 'Top Moments' },
+  { id: 'credentials', episode: 'Episode 05', title: 'Certificates', subtitle: 'Verified Honors' },
 ];
+
+const PROFILE_EXPERIENCE_COPY: Record<
+  ProfileMode,
+  { eyebrow: string; summaryNote: string }
+> = {
+  explore: {
+    eyebrow: 'A Series · Complete Engineering Catalog',
+    summaryNote: 'Balanced walkthrough covering story, flagship AI & full-stack builds, skills, and verified experience.',
+  },
+  recruiter: {
+    eyebrow: 'Recruiter View · Verified Credentials & Career History',
+    summaryNote: 'Prioritizing employment timeline, Coursera credentials, and direct official CV request access.',
+  },
+  ai_ml: {
+    eyebrow: 'AI / ML Engineer View · RAG, LLMs & Computer Vision',
+    summaryNote: 'Lead-in focused on multi-agent RAG orchestration, YOLOv8 real-time inference, and MLOps pipelines.',
+  },
+  developer: {
+    eyebrow: 'Software Developer View · FastAPI, Next.js & Docker Systems',
+    summaryNote: 'Highlighting production APIs, full-stack TypeScript/PostgreSQL builds, and verified live deployments.',
+  },
+};
 
 export default function App() {
   const [routePath, setRoutePath] = useState<string>(() => window.location.pathname || '/');
@@ -47,6 +72,7 @@ export default function App() {
   const [profileMode, setProfileMode] = useState<ProfileMode>('explore');
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [cvModalOpen, setCvModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [portraitFailed, setPortraitFailed] = useState(false);
 
@@ -146,9 +172,9 @@ export default function App() {
         return;
       }
     } catch {
-      // Fallback below
+      // Fallback to CV Request modal
     }
-    scrollToSection('contact');
+    setCvModalOpen(true);
   };
 
   const scrollToSection = (id: string) => {
@@ -222,7 +248,7 @@ export default function App() {
       return ['projects', 'skills', 'story', 'experience', 'credentials', 'about', 'contact'];
     }
     if (profileMode === 'developer') {
-      return ['projects', 'skills', 'story', 'experience', 'about', 'credentials', 'contact'];
+      return ['projects', 'skills', 'experience', 'about', 'credentials', 'story', 'contact'];
     }
     const base = theme?.section_order?.length
       ? [...theme.section_order]
@@ -232,6 +258,8 @@ export default function App() {
     }
     return base;
   })();
+
+  const modeCopy = PROFILE_EXPERIENCE_COPY[profileMode];
 
   const renderSection = (key: string) => {
     if (hidden.has(key)) return null;
@@ -246,6 +274,7 @@ export default function App() {
             projects={projects}
             certificates={certificates}
             onDownloadResume={handleResumeDownload}
+            onRequestCv={() => setCvModalOpen(true)}
             onOpenAI={() => setAiChatOpen(true)}
             onSelectProject={handleOpenProject}
           />
@@ -291,7 +320,6 @@ export default function App() {
       case 'contact':
         return (
           <div key="contact">
-            {/* Video 1 "TO BE CONTINUED..." + Video 2 "Have an idea? Let's build it." Closing Slate */}
             <section className="border-t border-zinc-900 bg-[#060608]">
               <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
                 <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
@@ -312,6 +340,14 @@ export default function App() {
                   >
                     <span>Let&apos;s Build</span>
                     <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCvModalOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-md border border-[#e50914]/70 bg-[#e50914]/15 px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#e50914]/30 whitespace-nowrap shrink-0"
+                  >
+                    <FileCheck2 className="h-3.5 w-3.5 text-[#e50914]" />
+                    <span>Request Official CV</span>
                   </button>
                   {profile.github_url ? (
                     <a
@@ -352,6 +388,7 @@ export default function App() {
               <ContactSection
                 profile={profile}
                 onOpenAI={() => setAiChatOpen(true)}
+                onRequestCv={() => setCvModalOpen(true)}
               />
             </div>
           </div>
@@ -376,7 +413,6 @@ export default function App() {
       {/* Strict 3-Zone Top Navigation Contract */}
       <header className="sticky top-0 z-30 border-b border-zinc-900/90 bg-[#060608]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-8 px-6 py-4 lg:px-10">
-          {/* Zone 1: Single-line Brand Wordmark */}
           <a
             href="#top"
             onClick={(e) => {
@@ -388,7 +424,6 @@ export default function App() {
             {profile.full_name}
           </a>
 
-          {/* Zone 2: 5 concise single-line text nav links */}
           <nav aria-label="Primary Navigation" className="hidden items-center gap-7 md:flex">
             {[
               { id: 'projects', label: 'Projects' },
@@ -408,7 +443,6 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Zone 3: 1 primary CTA + mobile menu toggle */}
           <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
@@ -430,7 +464,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Drawer */}
         {mobileMenuOpen ? (
           <div className="border-t border-zinc-900 bg-[#0A0C11] px-6 py-4 md:hidden">
             <div className="flex flex-col gap-3">
@@ -457,9 +490,10 @@ export default function App() {
         ) : null}
       </header>
 
-      {/* Video 1 Streaming Cinema Hero + 3D Ambient Canvas */}
+      {/* Hero Section with VideoBackgroundLayer + Ambient 3D Canvas */}
       <main id="top">
         <section className="relative overflow-hidden border-b border-zinc-900">
+          <VideoBackgroundLayer theme={theme} profileMode={profileMode} />
           <HeroCanvas3D
             enabled={Boolean(theme?.three_d_enabled)}
             accentColor={theme?.accent_color || '#e50914'}
@@ -467,7 +501,6 @@ export default function App() {
 
           <div className="relative z-10 mx-auto max-w-[1360px] px-6 pb-14 pt-14 sm:pt-20 lg:px-10">
             <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
-              {/* Left Column: Video 1 Cinema Title Lockup */}
               <motion.div
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -476,7 +509,7 @@ export default function App() {
               >
                 <div className="space-y-4">
                   <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
-                    A Series · {profile.subheadline}
+                    {modeCopy.eyebrow}
                   </p>
 
                   <div>
@@ -484,11 +517,10 @@ export default function App() {
                       {profile.full_name}
                     </h1>
                     <p className="mt-2 font-display text-2xl font-bold tracking-[0.14em] text-[#e50914] uppercase sm:text-3xl">
-                      The Engineering Series
+                      {profile.subheadline}
                     </p>
                   </div>
 
-                  {/* Unboxed dot-separated metadata row (No Pill Sandwiches) */}
                   <p className="font-mono text-xs text-slate-400">
                     {profile.location} · BSCS, Superior University · {projects.length} GitHub Systems ·{' '}
                     {experience.length} Orgs · {certificates.length} Certs
@@ -498,27 +530,54 @@ export default function App() {
                   <p className="max-w-2xl text-base leading-relaxed text-slate-300">
                     {profile.headline}. {profile.bio_short}
                   </p>
+
+                  <p className="text-xs text-slate-400">{modeCopy.summaryNote}</p>
                 </div>
 
                 <div className="space-y-5">
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => scrollToSection('projects')}
-                      className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
-                    >
-                      <Play className="h-4 w-4 fill-zinc-950" />
-                      <span>{theme?.hero_cta_primary || 'Explore Work'}</span>
-                    </button>
+                    {profileMode === 'recruiter' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setCvModalOpen(true)}
+                          className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
+                        >
+                          <FileCheck2 className="h-4 w-4 text-[#e50914]" />
+                          <span>Request Official CV</span>
+                        </button>
+                        {profile.resume_url ? (
+                          <button
+                            type="button"
+                            onClick={handleResumeDownload}
+                            className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Public Resume PDF</span>
+                          </button>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => scrollToSection('projects')}
+                          className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-slate-200 whitespace-nowrap shrink-0"
+                        >
+                          <Play className="h-4 w-4 fill-zinc-950" />
+                          <span>{theme?.hero_cta_primary || 'Explore Work'}</span>
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={handleResumeDownload}
-                      className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>{profile.resume_url ? 'View Resume' : 'Request Resume'}</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => setCvModalOpen(true)}
+                          className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-[#0D0F14]/90 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-zinc-500 whitespace-nowrap shrink-0"
+                        >
+                          <FileCheck2 className="h-4 w-4 text-[#e50914]" />
+                          <span>Request CV</span>
+                        </button>
+                      </>
+                    )}
 
                     <button
                       type="button"
@@ -558,7 +617,7 @@ export default function App() {
                 </div>
               </motion.div>
 
-              {/* Right Column: Seamlessly Blended Cinema Portrait */}
+              {/* Right Column: Portrait */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -593,7 +652,7 @@ export default function App() {
               </motion.div>
             </div>
 
-            {/* Video 1 "Continue Exploring" 5-Episode Quick-Jump Strip */}
+            {/* Continue Exploring 5-Episode Strip */}
             <div className="mt-14 border-t border-zinc-900 pt-8">
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
@@ -627,11 +686,9 @@ export default function App() {
           </div>
         </section>
 
-        {/* Perspective-Ordered Sections */}
         {defaultOrder.map((sec) => renderSection(sec))}
       </main>
 
-      {/* Quiet Editorial Footer */}
       <footer className="border-t border-zinc-900 bg-[#050507] px-6 py-8 lg:px-10">
         <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} {profile.full_name}. Verified Engineering Portfolio.</p>
@@ -644,6 +701,13 @@ export default function App() {
             >
               GitHub
             </a>
+            <button
+              type="button"
+              onClick={() => setCvModalOpen(true)}
+              className="hover:text-slate-300"
+            >
+              Request CV
+            </button>
             <button
               type="button"
               onClick={() => scrollToSection('contact')}
@@ -663,6 +727,8 @@ export default function App() {
       </footer>
 
       <ProjectDetailModal project={selectedProject} onClose={handleCloseProject} />
+
+      <CvRequestModal isOpen={cvModalOpen} onClose={() => setCvModalOpen(false)} />
 
       <AbdullahAIChat
         isOpen={aiChatOpen}

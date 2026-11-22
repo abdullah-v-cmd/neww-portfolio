@@ -1,0 +1,1564 @@
+# ULTIMATE MASTER IMPLEMENTATION 
+# ABDULLAH NAVEED — COMPLETE AI-POWERED PORTFOLIO TRANSFORMATION
+
+## GITHUB PROJECT CURATION + ABDULLAH AI KNOWLEDGE SYSTEM + PREMIUM SKILLS + CINEMATIC VIDEO BACKGROUND + RECRUITER CV REQUEST & DELIVERY + COMPLETE ADMIN PANEL AUDIT
+
+---
+
+# ROLE
+
+Act as a Principal Full-Stack Engineer, Senior AI/ML Engineer, RAG Architect, Database Architect, Frontend Performance Engineer, UI/UX Designer, Security Engineer, DevOps Engineer, Email Infrastructure Engineer, and QA Automation Architect.
+
+Your responsibility is to inspect, upgrade, repair, implement, and thoroughly test my existing Abdullah Naveed portfolio.
+
+This is a comprehensive upgrade of my existing application, NOT a rebuild from scratch.
+
+The objective is to create a premium, cinematic, intelligent, recruiter-ready engineering portfolio with a genuinely functional administration system.
+
+## NON-NEGOTIABLE RULES
+
+1. Inspect the existing project before modifying anything.
+2. Preserve the current architecture wherever possible.
+3. Preserve all working features and integrations.
+4. Do not unnecessarily replace frameworks, databases, hosting, or APIs.
+5. Do not create duplicate modules or sources of truth.
+6. Do not invent projects, technologies, certificates, achievements, or experience.
+7. Do not use mock data to claim production functionality.
+8. Implement actual frontend, backend, and database changes.
+9. Implement persistent functionality rather than temporary UI changes.
+10. Test the actual application after implementation.
+11. Fix confirmed bugs instead of only documenting them.
+12. Report honestly what passed, failed, or remains blocked.
+
+---
+
+# PART 1 — COMPLETE EXISTING PORTFOLIO AUDIT
+
+Inspect:
+
+- Frontend architecture.
+- Backend architecture.
+- Database and migrations.
+- Existing admin panel.
+- Authentication and authorization.
+- GitHub integration.
+- Abdullah AI implementation.
+- RAG and document ingestion.
+- Skills and project relationships.
+- Homepage and visitor profiles.
+- Existing animation system.
+- Appearance and theme settings.
+- Resume Management.
+- Email/SMTP configuration.
+- Existing contact and recruiter request workflows.
+- Deployment configuration.
+- Existing tests.
+
+Create an implementation inventory identifying features as:
+
+- Working.
+- Partially working.
+- Broken.
+- Missing.
+- Duplicated.
+- Blocked by external dependencies.
+
+Do not replace working functionality without a technical reason.
+
+---
+
+# PART 2 — GITHUB PROJECT DISCOVERY AND CURATION
+
+GitHub account:
+
+https://github.com/abdullah-v-cmd
+
+Inspect and organize all 30 repositories.
+
+## A. AI / ML / Generative AI
+
+1. Jarvis Assistant — https://github.com/abdullah-v-cmd/Jarvis-Assistant
+2. Production RAG Document Intelligence — https://github.com/abdullah-v-cmd/production-rag-document-intelligence
+3. ML Pipeline End-to-End — https://github.com/abdullah-v-cmd/ML-PipeLine-End-to-End
+4. MLOps Engineering Platform — https://github.com/abdullah-v-cmd/mlops-engineering-platform
+5. RAG System with Scalable Architecture — https://github.com/abdullah-v-cmd/Rag-System-with-scalable-architecture
+6. Scalable AI API System — https://github.com/abdullah-v-cmd/Scaleable-Ai-api-system
+7. Multi GAN AI — https://github.com/abdullah-v-cmd/multi_gan_ai
+8. ZaraFit AI Try-On — https://github.com/abdullah-v-cmd/zarafit-ai-tryon
+9. LegalAI Document Intelligence — https://github.com/abdullah-v-cmd/legalai-document-intelligence
+10. Interview Bot — https://github.com/abdullah-v-cmd/interview-bot
+11. OmniSynth / Advanced Research Bot — https://github.com/abdullah-v-cmd/Omni-Advanced-Version-of-Research-Bot
+12. AI Studio — https://github.com/abdullah-v-cmd/AI-Studio-Multi-Modal-AI-Content-Generation-Platform
+13. AI/ML Engineering Lab — https://github.com/abdullah-v-cmd/AI-ML-Engineering-Lab
+14. MarketShield AI — https://github.com/abdullah-v-cmd/marketshield-ai
+15. Kaggle Bot — https://github.com/abdullah-v-cmd/kaggle-bot
+
+## B. Full-stack / Web Development
+
+16. V-Watch — https://github.com/abdullah-v-cmd/vwatch-ai-traffic-violation-system
+17. LuxeWatch E-commerce — https://github.com/abdullah-v-cmd/luxewatch-ecommerce
+18. Muscle Bros — https://github.com/abdullah-v-cmd/muscle-bros
+19. Bros Fullstack — https://github.com/abdullah-v-cmd/bros-fullstack
+20. GymBro Fullstack Platform — https://github.com/abdullah-v-cmd/gymbro-fullstack-platform
+21. Student Tracker — https://github.com/abdullah-v-cmd/student-tracker
+
+## C. LMS / Education
+
+22. EduSphere — https://github.com/abdullah-v-cmd/edusphere-school-erp-lms
+23. LMS Portal — https://github.com/abdullah-v-cmd/LMS-PORTAL
+24. LMS — https://github.com/abdullah-v-cmd/lms
+25. LMS Complete — https://github.com/abdullah-v-cmd/LMS-COMPLETE
+
+## D. Automation / Bots
+
+26. LinkedIn Job Bot — https://github.com/abdullah-v-cmd/linkedin-job-bot
+27. LinkedIn Job Bot Results — https://github.com/abdullah-v-cmd/linkedin-job-bot-results
+
+## E. Portfolio
+
+28. Abdullah Naveed Portfolio — https://github.com/abdullah-v-cmd/abdullah-naveed-portfolio
+29. My New Portfolio — https://github.com/abdullah-v-cmd/my-new-portfolio
+
+## F. Other
+
+30. 01 Vanilla RAG — https://github.com/abdullah-v-cmd/01-vanilla-rag
+
+## Repository inspection requirements
+
+Inspect all accessible repositories, including:
+
+- README files.
+- Source code.
+- Folder structures.
+- Dependencies.
+- API endpoints.
+- Database models.
+- Architecture documentation.
+- Deployment configuration.
+- Tests.
+- Screenshots and assets.
+- Relevant commit history.
+
+Establish each repository's:
+
+1. Actual purpose.
+2. Problem being solved.
+3. Implemented features.
+4. Incomplete features.
+5. Verified technologies.
+6. Frontend and backend architecture.
+7. Database architecture.
+8. AI models and integrations.
+9. Deployment status.
+10. Limitations.
+11. Live demo availability.
+12. Repository health.
+
+Classify projects as Completed, In Progress, Experimental, Archived, Incomplete, or Unavailable.
+
+Investigate related repositories and identify duplicates, previous versions, rewrites, and companion projects.
+
+Do not automatically merge repositories or feature incomplete projects as finished.
+
+---
+
+# PART 3 — FOUR DISTINCT VISITOR EXPERIENCES
+
+Create four genuinely different experiences:
+
+1. Recruiter.
+2. AI / ML Engineer.
+3. Software Developer.
+4. Explore Everything.
+
+Each must have distinct project ordering, skills emphasis, introduction, and content hierarchy.
+
+### Recruiter
+
+Prioritize:
+
+- Professional introduction.
+- Verified experience.
+- Education.
+- Certificates.
+- Technical skills.
+- Selected projects.
+- Resume and CV request.
+- Contact.
+
+### AI / ML Engineer
+
+Prioritize:
+
+- Python.
+- Machine Learning.
+- Deep Learning.
+- Neural Networks.
+- LLMs.
+- Generative AI.
+- RAG.
+- Vector Search.
+- Embeddings.
+- AI Agents.
+- Computer Vision.
+- MLOps.
+
+### Software Developer
+
+Prioritize:
+
+- React.js.
+- Next.js.
+- TypeScript.
+- JavaScript.
+- Node.js.
+- Express.js.
+- Python.
+- FastAPI.
+- REST APIs.
+- Authentication.
+- PostgreSQL.
+- Docker.
+- System Design.
+
+### Explore Everything
+
+Display the complete approved project catalogue organized by category.
+
+Do not simply change the heading between profiles.
+
+---
+
+# PART 4 — PREMIUM PROJECT EXPERIENCE
+
+Create professional project cards and detailed project pages.
+
+Each card should display:
+
+- Project name.
+- Description.
+- Category.
+- Verified technology stack.
+- Project status.
+- Screenshot.
+- GitHub link.
+- Verified live demo.
+- Implementation highlights.
+
+Project details should include:
+
+1. Overview.
+2. Problem statement.
+3. Solution.
+4. Architecture.
+5. Technology stack.
+6. Implemented features.
+7. Backend.
+8. Frontend.
+9. AI/ML implementation where applicable.
+10. Database design where applicable.
+11. Screenshots.
+12. Engineering challenges where documented.
+13. GitHub repository.
+14. Verified live demo.
+
+Only show claims supported by repository evidence.
+
+---
+
+# PART 5 — ABDULLAH AI: COMPLETE PERSONAL KNOWLEDGE SYSTEM
+
+Upgrade the existing Abdullah AI assistant.
+
+Do not create a second chatbot.
+
+Abdullah AI must understand Abdullah Naveed's verified professional information and all approved portfolio projects.
+
+Index:
+
+- Professional biography.
+- Education.
+- Experience.
+- Skills.
+- Projects.
+- Certificates.
+- Resume.
+- Technical architecture.
+- Verified achievements.
+- Public contact information.
+
+Use the correct professional name: **Abdullah Naveed**.
+
+Do not use outdated CV details.
+
+## Certificates
+
+Import approved certificates and extract:
+
+- Title.
+- Issuing organization.
+- Issue date.
+- Credential ID where available.
+- Skills covered.
+- Original document.
+- Verification URL.
+
+Never invent credentials.
+
+## Resume
+
+Use the latest admin-approved CV.
+
+Index the professional summary, experience, skills, projects, education, and certifications.
+
+Keep outdated CV versions from contaminating current answers.
+
+## Experience
+
+Include verified information about Bravo Media, DeepVision.ai, Developers Hub, and other verified organizations.
+
+Resolve conflicting dates only using authoritative evidence or admin confirmation.
+
+Never invent employment details.
+
+---
+
+# PART 6 — ABDULLAH AI MUST UNDERSTAND ALL PROJECTS
+
+Connect Abdullah AI to all accessible and approved GitHub repositories.
+
+Index:
+
+- Repository name.
+- Purpose.
+- Description.
+- Technology stack.
+- Source code.
+- Features.
+- Architecture.
+- Dependencies.
+- API routes.
+- Database schemas.
+- Documentation.
+- Deployment configuration.
+- Screenshots.
+- Project status.
+- GitHub URL.
+- Verified demo.
+
+The assistant must distinguish implemented features from planned, experimental, or documented intentions.
+
+It should answer questions such as:
+
+- Explain OmniSynth architecture.
+- Explain V-Watch.
+- Which projects use YOLOv8?
+- Which projects use FastAPI?
+- Which projects use RAG?
+- Compare OmniSynth and Scalable RAG.
+- Explain the LMS architecture.
+- Which projects use PostgreSQL?
+- Which projects have verified live demos?
+- Which repositories are incomplete?
+
+If a repository cannot be inspected, say so honestly.
+
+---
+
+# PART 7 — FIX ABDULLAH AI RESPONSE QUALITY
+
+Fix the existing problem where answers display filenames instead of actual explanations.
+
+Incorrect:
+
+- README.md
+- architecture.md
+- project.pdf
+
+Correct behavior:
+
+The assistant must answer the user's question in natural language using retrieved information.
+
+Requirements:
+
+1. Answer directly.
+2. Explain technical concepts clearly.
+3. Support follow-up questions.
+4. Compare multiple projects when requested.
+5. Provide relevant clickable sources.
+6. Acknowledge missing information.
+7. Avoid unsupported claims.
+8. Never expose internal chunk IDs.
+9. Never return only filenames or file paths.
+10. Include a concise Sources section when useful.
+
+Sources must support the answer, not replace it.
+
+---
+
+# PART 8 — COMPLETE RAG ARCHITECTURE
+
+Improve the existing RAG implementation.
+
+Support:
+
+- Document ingestion.
+- GitHub ingestion.
+- PDF extraction.
+- DOCX extraction.
+- TXT extraction.
+- Markdown extraction.
+- Image OCR.
+- Code-aware indexing.
+- Semantic chunking.
+- Metadata preservation.
+- Embeddings.
+- Vector search.
+- Hybrid search where appropriate.
+- Reranking.
+- Context assembly.
+- Grounded answer generation.
+- Source attribution.
+- Conversation history.
+- Follow-up understanding.
+- Incremental synchronization.
+
+Ensure ingestion is idempotent, failures are retryable, duplicate chunks are prevented, and private knowledge is separated from public knowledge.
+
+---
+
+# PART 9 — PROFILE-AWARE ABDULLAH AI
+
+Abdullah AI must work across all four visitor profiles.
+
+The selected profile changes answer emphasis, not access to approved public knowledge.
+
+- Recruiter: career, experience, certificates, education, strongest projects.
+- AI / ML Engineer: ML, LLMs, RAG, agents, embeddings, computer vision, MLOps.
+- Software Developer: frontend, backend, APIs, databases, architecture.
+- Explore Everything: complete categorized overview.
+
+Maintain conversational context.
+
+Example:
+
+User: Explain OmniSynth.
+
+Assistant: Explains OmniSynth.
+
+User: Which technologies does it use?
+
+Assistant: Understands "it" means OmniSynth.
+
+User: Compare it with V-Watch.
+
+Assistant: Retrieves and compares both projects.
+
+# PART 9A — ABDULLAH AI: UNRESTRICTED KNOWLEDGE-POWERED CONVERSATIONAL INTELLIGENCE
+
+This section extends Parts 5–9. It does not replace or remove any existing requirement.
+
+## 1. Complete conversational intelligence
+
+Abdullah AI must be a comprehensive AI assistant capable of answering any reasonable question within its knowledge, connected capabilities, and applicable safety and privacy boundaries.
+
+It must NOT be restricted to:
+- The 18 predefined Part-19D questions.
+- A fixed FAQ list.
+- Exact keyword matches.
+- A limited set of predefined prompts.
+- Only questions about Abdullah Naveed.
+
+The 18 Part-19D questions are mandatory evaluation cases, not the limits of the assistant.
+
+Visitors must be able to ask new questions in their own words and receive useful, relevant answers.
+
+## 2. Two knowledge domains
+
+Abdullah AI must understand two distinct knowledge domains.
+
+**A. Abdullah Naveed's personal and professional knowledge**
+
+Answer questions using approved and verified sources about:
+- Biography.
+- Education.
+- Professional experience.
+- Skills.
+- Certificates.
+- Resume.
+- Projects.
+- GitHub repositories.
+- Technical implementations.
+- Architecture.
+- Achievements.
+- Public contact information.
+- Portfolio content.
+
+Never invent personal facts or claim that Abdullah has used a technology without supporting evidence.
+
+**B. General technical and educational knowledge**
+
+The assistant should also answer general questions about:
+- Programming.
+- Python.
+- JavaScript and TypeScript.
+- React and Next.js.
+- Node.js and Express.
+- Backend development.
+- APIs.
+- Databases.
+- Software engineering.
+- System design.
+- Machine learning.
+- Deep learning.
+- Neural networks.
+- Computer vision.
+- LLMs.
+- Generative AI.
+- RAG.
+- Embeddings.
+- Vector databases.
+- AI agents.
+- MLOps.
+- Cloud and DevOps.
+- Other relevant technical subjects.
+
+Use the connected AI model's general capabilities for general educational questions, even when the answer is not present in Abdullah's personal knowledge base.
+
+Clearly distinguish general technical explanations from verified claims about Abdullah.
+
+## 3. Understand questions, not just keywords
+
+Support:
+- Natural-language questions.
+- Informal wording.
+- Misspellings where intent is clear.
+- Detailed technical questions.
+- Multiple questions in one message.
+- Comparisons.
+- Step-by-step explanations.
+- Questions involving multiple projects.
+- Questions requiring multiple knowledge sources.
+- Contextual follow-ups.
+
+The assistant must identify the user's intent and relevant context before retrieving information.
+
+## 4. Persistent conversation context
+
+Maintain relevant conversation context so follow-up questions work naturally.
+
+Example:
+
+Visitor: Explain OmniSynth.
+
+Assistant: Explains OmniSynth using verified information.
+
+Visitor: Which technologies does it use?
+
+Assistant: Understands that "it" means OmniSynth.
+
+Visitor: Explain the RAG architecture in detail.
+
+Assistant: Continues discussing OmniSynth's verified RAG implementation.
+
+Visitor: Compare it with V-Watch.
+
+Assistant: Retrieves and compares both projects.
+
+Support topic changes, context updates, and starting a fresh conversation without mixing unrelated conversations.
+
+## 5. Intelligent answer generation
+
+Answers should adapt to the question:
+
+- Short questions receive direct answers.
+- Detailed questions receive comprehensive explanations.
+- Technical questions receive technical depth.
+- Comparison questions receive structured comparisons.
+- Educational questions receive clear explanations and examples.
+- Project questions receive verified project-specific information.
+- Unknown questions receive an honest explanation of missing information.
+
+Use Markdown formatting, code examples, lists, tables, and relevant links when useful.
+
+Never return only filenames, file paths, chunk IDs, database records, or internal retrieval metadata.
+
+## 6. Knowledge retrieval and grounding
+
+When a question concerns Abdullah's personal information or portfolio:
+1. Identify the relevant subject.
+2. Search the approved knowledge base.
+3. Retrieve relevant documents and repository information.
+4. Use semantic and keyword retrieval.
+5. Apply hybrid search and reranking where appropriate.
+6. Combine evidence from multiple sources when needed.
+7. Generate an accurate answer.
+8. Include relevant source links or citations.
+
+For general technical questions, use the connected model's general knowledge where appropriate.
+
+Do not force every general question through the personal RAG knowledge base.
+
+## 7. Accuracy and privacy
+
+The assistant must:
+- Never fabricate personal facts.
+- Never invent project features.
+- Never invent professional experience.
+- Never invent performance results.
+- Distinguish implemented features from planned features.
+- Acknowledge missing evidence.
+- Protect private documents and repositories.
+- Never reveal credentials, secrets, or admin-only information.
+- Respect the public/private knowledge boundary.
+
+## 8. Profile-aware responses
+
+The four existing visitor profiles should influence answer emphasis:
+
+- Recruiter: career, education, experience, certificates, and selected projects.
+- AI/ML Engineer: AI architecture, models, RAG, ML, and implementation details.
+- Software Developer: programming, frontend, backend, APIs, databases, and system design.
+- Explore Everything: comprehensive explanations across the portfolio.
+
+Do not restrict the assistant's ability to answer a supported question based on the selected profile.
+
+## 9. Admin controls and observability
+
+Integrate this functionality into the existing Abdullah AI administration system.
+
+Allow authorized administrators to:
+- Manage approved personal knowledge.
+- Upload and index documents.
+- Configure AI providers and models.
+- Configure retrieval settings.
+- Review ingestion errors.
+- Test questions.
+- Review answer quality.
+- Inspect retrieved sources.
+- Manage public/private knowledge boundaries.
+- Monitor performance and usage.
+
+Do not create a separate disconnected chatbot or duplicate knowledge system.
+
+## 10. Mandatory evaluation
+
+In addition to all 18 Part-19D tests, create tests for:
+
+- Personal biography questions.
+- Questions about every approved project.
+- Multi-document questions.
+- Technical education questions.
+- General programming questions.
+- General AI/ML questions.
+- Detailed architecture questions.
+- Multi-turn follow-ups.
+- Comparisons.
+- Multi-part questions.
+- Unknown information.
+- Unsupported personal claims.
+- Private information access attempts.
+- Context reset and topic changes.
+
+Evaluate correctness, relevance, source grounding, context handling, privacy, and answer quality.
+
+---
+
+# PART 10 — PREMIUM INTERACTIVE SKILLS EXPERIENCE
+
+When a visitor clicks a skill, display a premium detail panel, modal, or expandable card.
+
+Include:
+
+- Skill name.
+- Category.
+- Icon.
+- Professional description.
+- What the technology does.
+- How Abdullah uses it.
+- Verified related projects.
+- Related verified experience.
+- Related technologies.
+- GitHub links.
+- Screenshots.
+
+Use the existing dark interface, red accent color, premium typography, subtle animations, and responsive design.
+
+## Skill relationships
+
+Create or repair persistent relationships between:
+
+- Skills.
+- Projects.
+- Experience.
+
+One skill can connect to multiple projects and experience entries.
+
+Admin must be able to manage every relationship.
+
+Candidate relationships to verify:
+
+| Skill | Candidate projects |
+|---|---|
+| Python | OmniSynth, V-Watch, AI/ML Engineering Lab |
+| FastAPI | OmniSynth, V-Watch |
+| React.js | Verified React projects |
+| Next.js | OmniSynth and verified Next.js projects |
+| LangGraph | OmniSynth |
+| FAISS | OmniSynth and verified RAG projects |
+| PostgreSQL | LMS Complete, OmniSynth, V-Watch |
+| YOLOv8 | V-Watch |
+| PyTorch | AI/ML Engineering Lab |
+| Docker | Projects with verified Docker configurations |
+
+These are candidates, not confirmed facts.
+
+Selecting a skill must not require a page reload.
+
+Support category cards, search, filtering, technology icons, project counts, keyboard navigation, and mobile interactions.
+
+---
+
+# PART 11 — INDUSTRY-RELEVANT SKILLS
+
+Audit existing skills and identify relevant missing technologies using current industry research.
+
+Organize skills into:
+
+- Programming Languages.
+- Machine Learning & Data Science.
+- Generative AI & LLM Engineering.
+- RAG & Retrieval Engineering.
+- Computer Vision.
+- Backend & API Development.
+- Frontend Development.
+- Databases & Data Engineering.
+- Cloud, DevOps & MLOps.
+- Software Architecture.
+
+Consider relevant technologies such as:
+
+Python, JavaScript, TypeScript, SQL, PyTorch, TensorFlow, scikit-learn, Pandas, NumPy, LangChain, LangGraph, Hugging Face, Groq, RAG, embeddings, FAISS, pgvector, OpenCV, YOLOv8, React, Next.js, Node.js, Express, FastAPI, PostgreSQL, Redis, Docker, AWS, Kubernetes, Terraform, CI/CD, MLOps, and system design.
+
+Do not automatically publish every suggested technology as proven expertise.
+
+Classify skills as:
+
+1. Used in Projects.
+2. Professional Experience.
+3. Learning / Familiar.
+4. Admin Review Required.
+
+Admin approval is required before publishing new suggested skills.
+
+Do not invent proficiency levels or years of experience.
+
+---
+
+# PART 12 — CINEMATIC VIDEO BACKGROUND SYSTEM
+
+Add an admin-controlled cinematic video background.
+
+## Admin settings
+
+Add:
+
+**Appearance → Background & Video Settings**
+
+Modes:
+
+1. Static image.
+2. Cinematic video.
+3. Gradient.
+4. Default background.
+
+Allow admin to upload, select, preview, replace, remove, and publish video backgrounds.
+
+Support MP4 H.264 and WebM VP9 or AV1 where supported.
+
+Validate file format, size, and duration.
+
+## Playback
+
+Video must:
+
+- Autoplay when permitted.
+- Be muted.
+- Loop.
+- Use playsinline.
+- Have no visible controls.
+- Use object-fit: cover.
+- Preserve aspect ratio.
+- Remain behind foreground content.
+- Never block interactions.
+
+## Performance
+
+- Use an optimized poster.
+- Avoid unnecessary full-video downloads.
+- Avoid duplicate video requests.
+- Prevent layout shifts.
+- Avoid unnecessary React state updates.
+- Avoid expensive animation loops.
+- Use efficient caching.
+- Pause when the page is hidden.
+- Respect reduced-motion preferences.
+- Support mobile-specific video variants.
+- Provide an image fallback if playback fails.
+
+Allow global or profile-specific backgrounds.
+
+Test video enabled versus disabled and measure performance.
+
+Do not claim zero lag without measurement.
+
+---
+
+# PART 13 — COMPLETE ADMIN CONTENT MANAGEMENT
+
+Extend the existing admin panel instead of creating another one.
+
+Admin must be able to manage:
+
+- Profiles.
+- Homepage content.
+- Projects.
+- GitHub synchronization.
+- Skills.
+- Skill relationships.
+- Experience.
+- Education.
+- Certificates.
+- Resume versions.
+- Recruiter CV requests.
+- Contact messages.
+- Abdullah AI settings.
+- AI providers.
+- Knowledge base.
+- Document ingestion.
+- RAG configuration.
+- Conversations.
+- Email/SMTP.
+- Appearance.
+- Video backgrounds.
+- Animations.
+- SEO.
+- Analytics.
+- Admin accounts.
+- Security.
+- Backups.
+- Audit logs.
+
+Provide persistent operations and actual backend integration.
+
+---
+
+# PART 14 — NEW MAJOR MODULE: RECRUITER CV REQUEST & ADMIN DELIVERY SYSTEM
+
+This module is mandatory.
+
+The public portfolio must allow recruiters to request Abdullah Naveed's CV.
+
+The admin must be able to review each request and send either:
+
+1. An existing saved CV from Resume Management.
+2. A newly uploaded PDF for that specific recruiter.
+
+Do not automatically send a CV without admin approval.
+
+## A. Public recruiter CV request
+
+Add a prominent but professional action:
+
+**Request CV / Request Resume**
+
+The recruiter should be able to submit:
+
+- Full name.
+- Company name.
+- Professional email address.
+- Job title or position (optional).
+- Message (optional).
+
+Validate all required fields and the email address.
+
+On submission:
+
+1. Save the request in the database.
+2. Generate a unique request ID.
+3. Record submission date and time.
+4. Display a confirmation.
+5. Notify the admin through the existing notification and configured email systems.
+6. Prevent accidental duplicate submissions.
+7. Apply rate limiting and spam protection.
+
+Confirmation message:
+
+"Your CV request has been received. Thank you for your interest. I will review your request and respond as soon as possible."
+
+Do not tell recruiters their CV has been sent before delivery actually occurs.
+
+## B. Admin CV request management
+
+Add:
+
+**Admin Panel → Recruiter Requests → CV Requests**
+
+Display:
+
+- Request ID.
+- Recruiter name.
+- Company.
+- Email.
+- Position.
+- Request date.
+- Request status.
+- CV delivery status.
+- Actions.
+
+Support statuses:
+
+- New Request.
+- Under Review.
+- Approved.
+- CV Sent.
+- Rejected.
+- Closed.
+
+Admin can:
+
+- View request details.
+- Search requests.
+- Filter by status.
+- Filter by company.
+- Filter by date.
+- Open request history.
+- Add internal notes.
+- Change request status.
+- Approve or reject requests.
+- Send the CV.
+
+## C. Option 1 — Send an existing saved CV
+
+Integrate with the existing Resume Management module.
+
+Display saved CV versions with:
+
+- Filename.
+- CV version.
+- Upload date.
+- File format.
+- Active/inactive status.
+- Preview.
+- Download.
+
+Admin selects the desired CV and confirms the recipient before sending.
+
+Use the existing saved CV without creating unnecessary duplicate files.
+
+## D. Option 2 — Upload and send a new PDF
+
+Provide an upload option for a one-time recruiter-specific CV.
+
+Admin can:
+
+- Upload PDF.
+- Preview PDF.
+- Verify recipient.
+- Add a personalized email message.
+- Send the attachment.
+
+Do not automatically replace the default public CV.
+
+Offer an explicit option to save the newly uploaded document as a new CV version in Resume Management.
+
+If not saved as a version, treat it as a temporary delivery attachment and handle its storage securely.
+
+## E. Email delivery
+
+Use the existing SMTP/email integration.
+
+Default subject:
+
+**Abdullah Naveed — Requested CV**
+
+Default email:
+
+Dear [Recruiter Name],
+
+Thank you for your interest in my profile.
+
+As requested, I have attached my CV for your review.
+
+Please feel free to contact me if you require any additional information.
+
+Best regards,  
+Abdullah Naveed
+
+Allow admin to edit the message before sending.
+
+Requirements:
+
+- Send to the request's verified email address.
+- Show recipient confirmation before sending.
+- Validate PDF MIME type and extension.
+- Enforce upload-size limits.
+- Handle SMTP failures.
+- Never expose SMTP credentials.
+- Never expose private storage URLs.
+- Prevent accidental repeated sends.
+- Record delivery attempts and errors.
+- Do not mark a CV as sent when delivery fails.
+
+If attachments are too large, use a secure, access-controlled download link with appropriate expiry instead.
+
+## F. CV version management
+
+Extend Resume Management to support:
+
+- Multiple CV versions.
+- Version names.
+- Descriptions.
+- Active version.
+- Upload dates.
+- Preview and download.
+- Archive old versions.
+- Replace versions.
+- Default CV selection.
+
+Keep private recruiter-specific CV versions separate from the public downloadable resume when appropriate.
+
+## G. Request history and delivery audit
+
+Record:
+
+- Request ID.
+- Recruiter details.
+- Request timestamp.
+- Selected CV version.
+- Sending administrator.
+- Recipient email.
+- Email subject.
+- Delivery timestamp.
+- Delivery status.
+- Failure reason.
+- Number of delivery attempts.
+
+Display complete delivery history.
+
+Support filtering by new, pending, sent, failed, and date.
+
+## H. Delivery reliability
+
+Use the email provider's actual delivery result.
+
+Distinguish:
+
+- Queued.
+- Accepted by SMTP provider.
+- Delivered, if provider delivery confirmation is available.
+- Bounced, if bounce information is available.
+- Failed.
+
+Do not treat an SMTP acceptance response as proof that the recruiter opened or received the email in their inbox.
+
+Implement retry behavior carefully.
+
+Prevent duplicate messages through idempotency keys or equivalent safeguards.
+
+## I. Security and privacy
+
+- Only authorized admins can send CVs.
+- Validate files on the backend.
+- Restrict file types and sizes.
+- Keep private CV files private.
+- Protect recruiter personal information.
+- Rate-limit public requests.
+- Prevent unauthorized CV access.
+- Record sensitive administrative actions.
+- Do not expose private storage paths.
+- Do not expose email credentials.
+
+## J. Required CV request workflow
+
+Test this complete process:
+
+1. Recruiter visits the portfolio.
+2. Recruiter requests a CV.
+3. Request is saved.
+4. Unique request ID is generated.
+5. Admin receives notification.
+6. Request appears in the admin panel.
+7. Admin opens the request.
+8. Admin chooses an existing saved CV.
+9. Admin confirms recipient and sends.
+10. Recruiter receives the email with PDF attachment.
+11. Delivery status is recorded.
+12. Admin can review history.
+
+Repeat the complete workflow using a newly uploaded PDF.
+
+Also test:
+
+- Invalid email.
+- Missing required fields.
+- Duplicate submission.
+- Oversized PDF.
+- Invalid file type.
+- SMTP failure.
+- Retry after failure.
+- Unauthorized access.
+- Repeated send attempts.
+- Private file access restrictions.
+
+Do not use simulated email delivery or mock success.
+
+---
+
+# PART 15 — HOMEPAGE AND NAVIGATION CLEANUP
+
+Remove the repeated sentence:
+
+"Experience, skills, certificates, resume and contact."
+
+Remove it from all page variants without removing the actual sections or navigation links.
+
+Fix the source in shared layouts, hero components, profile configuration, or duplicated content.
+
+Each page should have its own relevant introduction.
+
+Remove public views counters and views labels from:
+
+- Recruiter homepage.
+- AI / ML Engineer homepage.
+- Software Developer homepage.
+- Explore Everything homepage.
+
+Remove empty spaces left behind.
+
+Internal admin analytics may remain.
+
+Do not remove unrelated GitHub stars or legitimate project metadata.
+
+---
+
+# PART 16 — DESIGN AND USER EXPERIENCE
+
+Preserve the existing visual identity:
+
+- Dark cinematic theme.
+- Red accent color.
+- Premium typography.
+- Existing profile selection.
+- Existing project cards.
+- Existing animations.
+- Responsive layouts.
+- Abdullah AI assistant.
+- Existing admin panel.
+
+Improve:
+
+- Project discovery.
+- Project detail pages.
+- Skills interactions.
+- Video backgrounds.
+- AI response formatting.
+- Source references.
+- Recruiter CV request experience.
+- CV request administration.
+- Mobile usability.
+- Page transitions.
+- Content hierarchy.
+
+Do not let animations or videos interfere with readability.
+
+---
+
+# PART 17 — TECHNICAL AND DATA REQUIREMENTS
+
+1. Preserve existing frameworks and deployment architecture.
+2. Reuse the existing database.
+3. Use migrations for schema changes.
+4. Maintain one source of truth for projects, skills, and experience.
+5. Integrate CV requests with existing Resume Management.
+6. Reuse existing SMTP configuration.
+7. Maintain consistent API contracts.
+8. Keep secrets server-side.
+9. Use background jobs for large ingestion and email tasks where appropriate.
+10. Make synchronization idempotent.
+11. Record failures and provide safe retries.
+12. Protect private and public knowledge separately.
+13. Preserve hosting compatibility.
+14. Avoid unnecessary dependencies.
+15. Do not silently replace the technology stack.
+
+If a feature conflicts with hosting limitations, explain the limitation and implement the closest secure compatible solution.
+
+---
+
+# PART 18 — COMPLETE ADMIN PANEL FUNCTIONALITY AND SECURITY AUDIT
+
+Inspect every existing admin module, including:
+
+- Dashboard.
+- Profile Management.
+- Homepage Management.
+- Visitor Profile Management.
+- Projects.
+- GitHub Integration.
+- Skills.
+- Skill Relationships.
+- Experience.
+- Education.
+- Certificates.
+- Resume Management.
+- Recruiter CV Requests.
+- CV Delivery History.
+- Contact Management.
+- Abdullah AI Settings.
+- AI Provider Configuration.
+- Knowledge Base.
+- Document Management.
+- GitHub Synchronization.
+- RAG Configuration.
+- Conversation Management.
+- Recruiter Messages.
+- Email / SMTP.
+- Appearance.
+- Theme Settings.
+- Video Background.
+- Animation Settings.
+- SEO.
+- Analytics.
+- User Management.
+- Admin Account Settings.
+- Security Settings.
+- Backup and Restore.
+- System Configuration.
+- Audit Logs.
+
+Discover and test additional existing modules.
+
+For every applicable module, test:
+
+### Read
+- Real backend data.
+- Loading state.
+- Empty state.
+- Error handling.
+
+### Create
+- Forms.
+- Validation.
+- Database persistence.
+- Success/failure feedback.
+
+### Update
+- Existing data.
+- Save behavior.
+- Updated UI.
+- Persistence after refresh.
+
+### Delete
+- Confirmation.
+- Correct record deletion.
+- Safe relationship handling.
+- Error handling.
+
+Not every module requires CRUD. Test its intended functionality.
+
+Verify the full workflow:
+
+Frontend → API → Authentication → Authorization → Backend → Database → Response → Frontend update.
+
+Test every interactive control.
+
+Fix nonfunctional buttons, broken endpoints, missing validation, response mismatches, database errors, and permission vulnerabilities.
+
+## Security
+
+Verify:
+
+- Admin authentication.
+- Protected routes.
+- Backend authorization.
+- Session security.
+- Password hashing.
+- API key protection.
+- File upload validation.
+- Private document access.
+- Public/admin data separation.
+- Rate limiting.
+- Audit logging.
+- CV privacy.
+- Email credential protection.
+
+---
+
+# PART 19 — COMPREHENSIVE TESTING
+
+## A. GitHub tests
+
+- Check all 30 repositories.
+- Verify repository availability.
+- Inspect repository contents.
+- Identify duplicates.
+- Identify incomplete projects.
+- Verify links and live demos.
+- Test project detail pages.
+
+## B. Visitor profile tests
+
+Verify that all four profiles have genuinely different content and project ordering.
+
+## C. Skills tests
+
+Test:
+
+- Skill details open correctly.
+- Verified projects appear.
+- Experience relationships work.
+- Search and filters work.
+- Admin edits persist.
+- Unverified skills remain unpublished.
+
+## D. Abdullah AI tests
+
+Test:
+
+1. Who is Abdullah Naveed?
+2. What is his education?
+3. List his certificates.
+4. Explain his experience.
+5. Explain OmniSynth.
+6. Explain V-Watch.
+7. Explain the LMS.
+8. Compare OmniSynth and Scalable RAG.
+9. List all projects.
+10. Identify projects using FastAPI.
+11. Identify projects using YOLOv8.
+12. Explain project architecture.
+13. Handle follow-up questions.
+14. Handle missing information.
+15. Provide meaningful clickable sources.
+16. Avoid unsupported claims.
+17. Never return only filenames.
+18. Never expose private administrative information.
+
+## E. Video tests
+
+Test upload, preview, publish, persistence, static fallback, playback failure, mobile behavior, reduced motion, navigation, click interactions, duplicate requests, and resource usage.
+
+Measure LCP, INP, CLS, video transfer size, playback startup, CPU, memory, and dropped frames where measurable.
+
+## F. CV request tests
+
+Test the complete recruiter-to-admin-to-email workflow.
+
+Verify both:
+
+- Existing saved CV delivery.
+- Newly uploaded PDF delivery.
+
+Test failure handling, retries, recipient confirmation, access restrictions, audit history, and duplicate prevention.
+
+## G. Admin panel tests
+
+For every discovered module, test intended functionality, real backend integration, persistence, validation, permissions, error handling, and responsive behavior.
+
+Assign:
+
+- PASS — Tested and working.
+- PARTIAL — Some functionality works.
+- FAIL — Broken or nonfunctional.
+- BLOCKED — Could not be tested due to an external dependency.
+
+Never mark untested modules as PASS.
+
+## H. Regression tests
+
+Test:
+
+- Desktop 1920 × 1080.
+- Laptop 1366 × 768.
+- Tablet.
+- Mobile.
+
+Check:
+
+- Horizontal overflow.
+- Broken images.
+- Broken links.
+- Console errors.
+- Layout shifts.
+- Navigation.
+- AI chat rendering.
+- Project cards.
+- Skill details.
+- Video playback.
+- CV request form.
+- Admin CV delivery.
+- Accessibility.
+- Existing integrations.
+
+---
+
+# PART 20 — FINAL IMPLEMENTATION REPORT
+
+After completing implementation, provide:
+
+## 1. GitHub audit
+
+- Total repositories checked.
+- Successfully inspected.
+- Successfully indexed.
+- Inaccessible repositories.
+- Empty repositories.
+- Incomplete repositories.
+- Related or duplicate versions.
+
+## 2. Project curation
+
+- Recruiter projects.
+- AI/ML Engineer projects.
+- Software Developer projects.
+- Explore Everything projects.
+- Excluded projects and reasons.
+
+## 3. Abdullah AI
+
+- Knowledge sources.
+- Repositories indexed.
+- Documents indexed.
+- Certificates indexed.
+- RAG changes.
+- Answer quality improvements.
+- Follow-up tests.
+- Source attribution results.
+
+## 4. Skills
+
+- Existing skills retained.
+- New skills added.
+- Skills awaiting approval.
+- Categories.
+- Project relationships.
+- Experience relationships.
+- UI improvements.
+
+## 5. Video background
+
+- Supported formats.
+- Upload and storage approach.
+- Optimization.
+- Fallback behavior.
+- Mobile behavior.
+- Admin controls.
+- Performance measurements.
+
+## 6. Recruiter CV request system
+
+- Public request form.
+- Admin request dashboard.
+- Saved CV selection.
+- New PDF upload.
+- Email delivery.
+- Delivery status handling.
+- Request history.
+- Security.
+- End-to-end test results.
+
+## 7. Admin panel
+
+Provide a complete module-by-module table:
+
+| Module | Status | Issues found | Fixes implemented |
+|---|---|---|---|
+
+Include every discovered module.
+
+## 8. Homepage cleanup
+
+- Repeated text removed.
+- Views counters removed.
+- Navigation fixed.
+- Responsive issues resolved.
+
+## 9. Technical changes
+
+- Files modified.
+- Database migrations.
+- API endpoints.
+- Frontend changes.
+- Backend changes.
+- AI integration changes.
+- Email integration changes.
+- Security improvements.
+
+## 10. Testing
+
+- Tests executed.
+- Tests passed.
+- Tests failed.
+- Blocked tests.
+- Performance measurements.
+- Known limitations.
+- Remaining tasks.
+
+Never claim a test passed unless it was actually executed.
+
+---
+
+# FINAL ACCEPTANCE CRITERIA
+
+The portfolio is complete only when:
+
+1. Four distinct visitor experiences work.
+2. All accessible GitHub repositories have been inspected and accurately curated.
+3. Project pages contain verified information.
+4. Abdullah AI understands approved personal knowledge and indexed repositories.
+5. Abdullah AI gives natural answers instead of filenames.
+6. RAG retrieval is grounded, multi-source, and source-aware.
+7. Follow-up questions work.
+8. Skills have premium interactive detail views.
+9. Skills display verified project and experience relationships.
+10. Industry skills are suggested without fabricating expertise.
+11. Admin can manage the portfolio and knowledge base.
+12. Cinematic video background is admin-controlled.
+13. Video has a reliable image fallback.
+14. Video does not unnecessarily compromise performance.
+15. All existing admin modules have been audited.
+16. Broken frontend/backend/database workflows are repaired.
+17. Recruiters can submit CV requests.
+18. Requests appear in the admin dashboard.
+19. Admin can send an existing saved CV.
+20. Admin can upload and send a new PDF.
+21. Actual email delivery is tested.
+22. Delivery status and request history persist.
+23. Unauthorized users cannot send or access private CV files.
+24. Public homepages no longer show repeated section-list text.
+25. Public homepages no longer display unwanted views counters.
+26. Existing deployment compatibility is preserved.
+27. Regression and security tests are performed honestly.
+
+# MOST IMPORTANT FINAL INSTRUCTION
+
+Do not just produce a plan, design mockup, or list of recommendations.
+
+Inspect the existing application, implement the changes, update the database where required, repair actual bugs, execute tests, and provide evidence of the results.
+
+Prioritize:
+
+1. Data accuracy and portfolio integrity.
+2. Abdullah AI knowledge quality.
+3. Correct project and skill relationships.
+4. Functional admin operations.
+5. Reliable recruiter CV request and delivery.
+6. Smooth cinematic video background.
+7. Security and privacy.
+8. Performance and responsive design.
+9. Regression testing and deployment readiness.
+
+Work in logical implementation phases. Preserve working functionality, run tests after each phase, and continue until the requested work is implemented or a genuine external blocker prevents progress.
+
+**The final result must be a real, production-oriented engineering portfolio that demonstrates Abdullah Naveed's actual work, intelligently explains his projects, provides a premium visitor experience, enables controlled recruiter CV delivery, and can be reliably managed through the admin panel.*

@@ -1,5 +1,16 @@
 import { useEffect } from 'react';
-import { X, Github, ExternalLink, Layers, Database, Cpu, Workflow, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  X,
+  Github,
+  ExternalLink,
+  Layers,
+  Database,
+  Cpu,
+  Workflow,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+} from 'lucide-react';
 import { ProjectItem } from '../types/portfolio';
 
 interface ProjectDetailModalProps {
@@ -25,6 +36,8 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
     { label: 'AI / Models', value: project.ai_models_stack || 'N/A', icon: Cpu },
     { label: 'Database / Storage', value: project.database_stack || 'N/A', icon: Database },
   ].filter((l) => l.value !== 'N/A');
+
+  const statusLabel = project.status || 'Completed';
 
   return (
     <div
@@ -59,12 +72,24 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
           </button>
 
           <div className="absolute bottom-6 left-6 right-6">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-300">
               <span className="font-medium text-red-400">{project.category}</span>
+              <span aria-hidden="true">·</span>
+              <span
+                className={
+                  statusLabel === 'Completed'
+                    ? 'text-emerald-400'
+                    : statusLabel === 'In Progress'
+                    ? 'text-amber-400'
+                    : 'text-sky-400'
+                }
+              >
+                {statusLabel}
+              </span>
               {project.github_repo_name ? (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span className="font-mono text-slate-300">{project.github_repo_name}</span>
+                  <span className="text-slate-300">{project.github_repo_name}</span>
                 </>
               ) : null}
             </div>
@@ -94,13 +119,31 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
                 href={project.live_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-red-600/60 bg-red-600/15 px-4 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-600/25 whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-600/60 bg-emerald-600/15 px-4 py-2 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-600/25 whitespace-nowrap shrink-0"
               >
                 <ExternalLink className="h-4 w-4" />
-                <span>Open Live Demo</span>
+                <span>
+                  {project.live_demo_verified ? 'Open Verified Live Demo' : 'Open Live Deployment'}
+                </span>
               </a>
             ) : null}
+            {project.companion_group ? (
+              <span className="font-mono text-xs text-slate-400">
+                Series: {project.companion_group}
+              </span>
+            ) : null}
           </div>
+
+          {/* Honest Limitations / Scope Notice */}
+          {project.limitations ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-800/50 bg-amber-950/20 p-4 text-xs leading-relaxed text-amber-200">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <div>
+                <p className="font-semibold text-amber-100">Project Status &amp; Scope Disclosure</p>
+                <p className="mt-1">{project.limitations}</p>
+              </div>
+            </div>
+          ) : null}
 
           {/* Overview, Problem & Solution */}
           <div className="space-y-6">
@@ -109,7 +152,7 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
               <p className="mt-2 text-sm leading-relaxed text-slate-300">{project.overview}</p>
             </div>
 
-            {(project.problem_statement || project.solution_summary) ? (
+            {project.problem_statement || project.solution_summary ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {project.problem_statement ? (
                   <div className="rounded-xl border border-zinc-800 bg-[#10131A] p-5">
@@ -135,7 +178,7 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
             ) : null}
           </div>
 
-          {/* Interactive Architecture Flow Diagram (SVG) */}
+          {/* Interactive Architecture Flow */}
           {layers.length > 0 ? (
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-white">
@@ -209,7 +252,7 @@ export function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps
             ) : null}
           </div>
 
-          {/* Verified Results (only rendered if verified_results exist) */}
+          {/* Verified Observations */}
           {project.verified_results.length > 0 ? (
             <div className="rounded-xl border border-zinc-800 bg-[#10131A] p-5">
               <h3 className="text-xs font-semibold tracking-wider text-emerald-400 uppercase">

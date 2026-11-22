@@ -23,6 +23,16 @@ export interface ProfileSettings {
   resume_downloads: number;
 }
 
+export interface ProfileBackgroundOverride {
+  bg_mode?: 'default' | 'gradient' | 'image' | 'video';
+  bg_video_url?: string;
+  bg_mobile_video_url?: string;
+  bg_poster_url?: string;
+  bg_image_url?: string;
+  bg_gradient_css?: string;
+  bg_overlay_opacity?: number;
+}
+
 export interface ThemeSettings {
   accent_color: string;
   secondary_accent: string;
@@ -36,6 +46,17 @@ export interface ThemeSettings {
   hidden_sections: string[];
   seo_title: string;
   seo_description: string;
+  bg_mode?: 'default' | 'gradient' | 'image' | 'video';
+  bg_video_url?: string;
+  bg_mobile_video_url?: string;
+  bg_poster_url?: string;
+  bg_image_url?: string;
+  bg_gradient_css?: string;
+  bg_overlay_opacity?: number;
+  profile_backgrounds?: Partial<Record<ProfileMode, ProfileBackgroundOverride>>;
+  rag_top_k?: number;
+  rag_chunk_size?: number;
+  rag_hybrid_weight?: number;
 }
 
 export interface ExperienceRole {
@@ -85,8 +106,16 @@ export interface SkillItem {
   category_id: number;
   name: string;
   proficiency_label: string;
+  description?: string;
+  what_it_does?: string;
+  how_abdullah_uses?: string;
+  status?: string;
+  icon_key?: string;
+  is_verified?: number;
   is_published: number;
   sort_order: number;
+  linked_project_ids?: number[];
+  linked_role_ids?: number[];
 }
 
 export interface SkillCategory {
@@ -126,6 +155,10 @@ export interface ProjectItem {
   is_published: number;
   is_archived: number;
   sort_order: number;
+  status?: string;
+  limitations?: string;
+  companion_group?: string;
+  live_demo_verified?: number;
 }
 
 export interface CertificateItem {
@@ -143,6 +176,53 @@ export interface CertificateItem {
   is_featured: number;
   is_public: number;
   is_archived: number;
+}
+
+export interface ResumeVersionItem {
+  id: number;
+  version_name: string;
+  description: string;
+  filename: string;
+  file_url: string;
+  file_size: number;
+  scope: 'public' | 'recruiter';
+  is_active: number;
+  is_default: number;
+  is_archived: number;
+  created_at: string;
+}
+
+export interface CvDeliveryLogItem {
+  id: number;
+  request_id: number;
+  resume_version_id: number | null;
+  custom_attachment_name: string;
+  recipient_email: string;
+  subject: string;
+  email_body: string;
+  sent_by_admin: string;
+  attempt_number: number;
+  delivery_status: string;
+  error_message: string;
+  message_id: string;
+  download_token: string;
+  created_at: string;
+}
+
+export interface CvRequestItem {
+  id: number;
+  request_uid: string;
+  full_name: string;
+  company: string;
+  email: string;
+  job_title: string;
+  message: string;
+  status: 'New Request' | 'Under Review' | 'Approved' | 'CV Sent' | 'Rejected' | 'Closed';
+  delivery_status: string;
+  internal_notes: string;
+  created_at: string;
+  updated_at: string;
+  delivery_logs: CvDeliveryLogItem[];
 }
 
 export interface PortfolioPayload {

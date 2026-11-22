@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { MessageSquare, X, Send, Copy, Check, Trash2, ArrowUpRight, Mail } from 'lucide-react';
 import { ProfileMode } from '../types/portfolio';
 
@@ -27,12 +27,231 @@ interface AbdullahAIChatProps {
 
 const SUGGESTED_QUESTIONS = [
   'Tell me about Abdullah Naveed.',
-  'What is his experience with RAG?',
-  'Tell me about OmniSynth.',
-  'Explain V-Watch.',
-  'What certificates does he have?',
-  'Does he have Docker and FastAPI experience?',
+  'What RAG systems has Abdullah built?',
+  'Explain V-Watch and its architecture.',
+  'Which projects have verified live demos?',
+  'Compare RAG vs fine-tuning for production systems.',
+  'How do you deploy FastAPI with Docker cleanly?',
 ];
+
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^)]+\))/g);
+  return parts.map((part, idx) => {
+    if (!part) return null;
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return (
+        <code
+          key={idx}
+          className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono text-[11px] text-red-300"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return (
+        <strong key={idx} className="font-semibold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    const linkMatch = part.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
+    if (linkMatch) {
+      return (
+        <a
+          key={idx}
+          href={linkMatch[2]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue-400 underline underline-offset-2 hover:text-blue-300"
+        >
+          {linkMatch[1]}
+        </a>
+      );
+    }
+    return <Fragment key={idx}>{part}</Fragment>;
+  });
+}
+
+function FormattedMarkdown({ content }: { content: string }) {
+  const [copiedCodeIdx, setCopiedCodeIdx] = useState<number | null>(null);
+  const blocks: Array<
+    | { type: 'code'; lang: string; code: string }
+    | { type: 'table'; headers: string[]; rows: string[][] }
+    | { type: 'text'; lines: string[] }
+  > = [];
+
+  const lines = content.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Fenced code block
+    if (line.trim().startsWith('```')) {
+      const lang = line.trim().slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      blocks.push({ type: 'code', lang, code: codeLines.join('\n') });
+      i++;
+      continue;
+    }
+
+    // Markdown table detection
+    if (
+      line.trim().startsWith('|') &&
+      i + 1 < lines.length &&
+      /^\s*\|[\s:-]+\|/.test(lines[i + 1])
+    ) {
+      const parseRow = (r: string) =>
+        r
+          .trim()
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map((c) => c.trim());
+      const headers = parseRow(line);
+      i += 2; // Skip separator row
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        rows.push(parseRow(lines[i]));
+        i++;
+      }
+      blocks.push({ type: 'table', headers, rows });
+      continue;
+    }
+
+    const textLines: string[] = [];
+    while (
+      i < lines.length &&
+      !lines[i].trim().startsWith('```') &&
+      !(
+        lines[i].trim().startsWith('|') &&
+        i + 1 < lines.length &&
+        /^\s*\|[\s:-]+\|/.test(lines[i + 1])
+      )
+    ) {
+      textLines.push(lines[i]);
+      i++;
+    }
+    blocks.push({ type: 'text', lines: textLines });
+  }
+
+  return (
+    <div className="space-y-2.5 text-[13px] leading-relaxed text-slate-200">
+      {blocks.map((block, bIdx) => {
+        if (block.type === 'code') {
+          return (
+            <div key={bIdx} className="overflow-hidden rounded-lg border border-zinc-800 bg-[#07080B]">
+              <div className="flex items-center justify-between border-b border-zinc-800/80 px-3 py-1.5 text-[10px] font-mono text-slate-400">
+                <span>{block.lang || 'code'}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(block.code).catch(() => undefined);
+                    setCopiedCodeIdx(bIdx);
+                    setTimeout(() => setCopiedCodeIdx(null), 1500);
+                  }}
+                  className="inline-flex items-center gap-1 hover:text-white"
+                >
+                  {copiedCodeIdx === bIdx ? (
+                    <>
+                      <Check className="h-3 w-3 text-emerald-400" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <pre className="overflow-x-auto p-3 font-mono text-xs text-slate-200">
+                <code>{block.code}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        if (block.type === 'table') {
+          return (
+            <div key={bIdx} className="overflow-x-auto rounded-lg border border-zinc-800 bg-[#090B10]">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-zinc-900/60 text-slate-200">
+                    {block.headers.map((h, hi) => (
+                      <th key={hi} className="px-2.5 py-2 font-semibold">
+                        {renderInlineMarkdown(h)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/70">
+                  {block.rows.map((row, ri) => (
+                    <tr key={ri}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} className="px-2.5 py-1.5 text-slate-300">
+                          {renderInlineMarkdown(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
+        return (
+          <div key={bIdx} className="space-y-1.5">
+            {block.lines.map((line, lIdx) => {
+              const trimmed = line.trim();
+              if (!trimmed) return <div key={lIdx} className="h-1" />;
+
+              const hMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+              if (hMatch) {
+                return (
+                  <p key={lIdx} className="pt-1 font-display text-sm font-bold tracking-wide text-white uppercase">
+                    {renderInlineMarkdown(hMatch[2])}
+                  </p>
+                );
+              }
+
+              const ulMatch = trimmed.match(/^[-*]\s+(.+)$/);
+              if (ulMatch) {
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 pl-1">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e50914]" />
+                    <span>{renderInlineMarkdown(ulMatch[1])}</span>
+                  </div>
+                );
+              }
+
+              const olMatch = trimmed.match(/^(\d+\.)\s+(.+)$/);
+              if (olMatch) {
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 pl-1">
+                    <span className="font-mono text-xs font-semibold text-[#e50914]">
+                      {olMatch[1]}
+                    </span>
+                    <span>{renderInlineMarkdown(olMatch[2])}</span>
+                  </div>
+                );
+              }
+
+              return <p key={lIdx}>{renderInlineMarkdown(trimmed)}</p>;
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function AbdullahAIChat({
   isOpen,
@@ -46,7 +265,7 @@ export function AbdullahAIChat({
       id: 'welcome',
       role: 'assistant',
       content:
-        'Hello. I am Abdullah AI, grounded in Abdullah Naveed’s verified portfolio, GitHub repositories, work history, and Coursera credentials. Ask me about his RAG systems, computer vision architectures, experience, or engineering stack.',
+        'Hello. I am **Abdullah AI**. Ask me anything about Abdullah Naveed’s verified projects, RAG & computer vision architectures, experience, or credentials — or ask general AI, ML, and software engineering questions.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -167,19 +386,19 @@ export function AbdullahAIChat({
       {
         id: 'welcome_reset',
         role: 'assistant',
-        content: 'Conversation cleared. Ask any question about Abdullah Naveed’s verified background or projects.',
+        content:
+          'Conversation cleared. Ask any question about Abdullah Naveed’s portfolio or general AI & software engineering.',
       },
     ]);
   };
 
   return (
     <>
-      {/* Floating Launch Button */}
       {!isOpen ? (
         <button
           type="button"
           onClick={() => onToggle(true)}
-          aria-label="Open Abdullah AI Recruiter Assistant"
+          aria-label="Open Abdullah AI Assistant"
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-xl border border-red-600/60 bg-[#0D0F14] px-4 py-3 text-xs font-semibold text-white shadow-2xl transition-transform hover:-translate-y-0.5 hover:border-red-500 focus-visible:outline-2 focus-visible:outline-red-500"
         >
           <MessageSquare className="h-4 w-4 text-red-500" />
@@ -187,21 +406,19 @@ export function AbdullahAIChat({
         </button>
       ) : null}
 
-      {/* Expanded Chat Window */}
       {isOpen ? (
         <aside
           role="dialog"
-          aria-label="Abdullah AI Recruiter Assistant"
-          className="fixed bottom-4 right-4 z-50 flex h-[min(640px,85vh)] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-[#0B0D12] shadow-2xl"
+          aria-label="Abdullah AI Assistant"
+          className="fixed bottom-4 right-4 z-50 flex h-[min(660px,86vh)] w-[min(460px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-[#0B0D12] shadow-2xl"
         >
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 bg-[#0F1219] px-4 py-3.5">
             <div>
               <h2 className="font-display text-sm font-bold tracking-wide text-white">
                 ABDULLAH AI
               </h2>
               <p className="text-[11px] text-slate-400">
-                Grounded Recruiter Assistant · Verified Records Only
+                Portfolio Grounded · General Technical Assistance
               </p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -225,7 +442,6 @@ export function AbdullahAIChat({
             </div>
           </div>
 
-          {/* Messages */}
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
             {messages.map((msg) => (
               <div
@@ -235,19 +451,25 @@ export function AbdullahAIChat({
                 }`}
               >
                 <div
-                  className={`max-w-[90%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+                  className={`max-w-[92%] rounded-xl px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-red-600 text-white'
+                      ? 'bg-red-600 text-sm text-white'
                       : 'border border-zinc-800 bg-[#121620] text-slate-200'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">
-                    {msg.content || (isStreaming && msg.role === 'assistant' ? 'Retrieving verified records…' : '')}
-                  </p>
+                  {msg.role === 'user' ? (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  ) : msg.content ? (
+                    <FormattedMarkdown content={msg.content} />
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      {isStreaming ? 'Searching verified records…' : ''}
+                    </p>
+                  )}
                 </div>
 
                 {msg.role === 'assistant' && msg.content && msg.id !== 'welcome' ? (
-                  <div className="mt-1.5 flex max-w-[90%] flex-wrap items-center gap-2">
+                  <div className="mt-1.5 flex max-w-[92%] flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => handleCopy(msg.id, msg.content)}
@@ -312,7 +534,6 @@ export function AbdullahAIChat({
             ) : null}
           </div>
 
-          {/* Escalate to Human + Composer */}
           <div className="border-t border-zinc-800 bg-[#0F1219] p-3">
             <div className="mb-2 flex items-center justify-between px-1">
               <button
@@ -338,7 +559,7 @@ export function AbdullahAIChat({
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about projects, RAG, experience..."
+                placeholder="Ask about projects, RAG, or engineering concepts..."
                 disabled={isStreaming}
                 className="h-10 flex-1 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white placeholder:text-slate-500 focus:border-red-500 focus:outline-none"
               />

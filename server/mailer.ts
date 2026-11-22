@@ -59,16 +59,22 @@ export async function sendEmailViaSmtp(params: {
   text: string;
   html?: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; path?: string; content?: Buffer; contentType?: string }>;
   forceEvenIfDisabled?: boolean;
-}): Promise<{ ok: boolean; message: string; messageId?: string }> {
+}): Promise<{
+  ok: boolean;
+  statusLabel: 'Accepted by SMTP provider' | 'Failed' | 'Skipped';
+  message: string;
+  messageId?: string;
+}> {
   const settings = getSmtpSettings();
   if (!settings || !settings.host || !settings.from_email) {
     logDelivery(params.to, params.subject, 'skipped', 'SMTP host or sender email not configured');
-    return { ok: false, message: 'SMTP is awaiting configuration in Admin -> Email Settings.' };
+    return { ok: false, statusLabel: 'Skipped', message: 'SMTP is awaiting configuration in Admin -> Email Settings.' };
   }
   if (!settings.is_enabled && !params.forceEvenIfDisabled) {
     logDelivery(params.to, params.subject, 'skipped', 'SMTP sending is disabled');
-    return { ok: false, message: 'SMTP sending is currently disabled.' };
+    return { ok: false, statusLabel: 'Skipped', message: 'SMTP sending is currently disabled in Admin -> Email Settings.' };
   }
 
   try {
@@ -80,13 +86,19 @@ export async function sendEmailViaSmtp(params: {
       subject: params.subject,
       text: params.text,
       html: params.html,
+      attachments: params.attachments,
     });
     logDelivery(params.to, params.subject, 'sent', '', info.messageId || '');
-    return { ok: true, message: 'Email sent successfully.', messageId: info.messageId };
+    return {
+      ok: true,
+      statusLabel: 'Accepted by SMTP provider',
+      message: 'Email accepted by SMTP provider.',
+      messageId: info.messageId,
+    };
   } catch (err: any) {
     const errMsg = err?.message || 'SMTP send error';
     logDelivery(params.to, params.subject, 'failed', errMsg);
-    return { ok: false, message: errMsg };
+    return { ok: false, statusLabel: 'Failed', message: errMsg };
   }
 }
 
@@ -113,6 +125,36 @@ export async function notifyAdminOfRecruiterMessage(params: {
       `Thread Reference: ${params.threadToken}`,
       ``,
       params.body,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  });
+}
+
+export async function notifyAdminOfCvRequest(params: {
+  requestUid: string;
+  fullName: string;
+  company: string;
+  email: string;
+  jobTitle: string;
+  message: string;
+}): Promise<void> {
+  const settings = getSmtpSettings();
+  if (!settings || !settings.is_enabled || !settings.notification_email) return;
+
+  await sendEmailViaSmtp({
+    to: settings.notification_email,
+    subject: `[CV Request ${params.requestUid}] ${params.fullName} — ${params.company}`,
+    replyTo: params.email,
+    text: [
+      `New Recruiter CV Request received (${params.requestUid}):`,
+      `Name: ${params.fullName}`,
+      `Company: ${params.company}`,
+      `Email: ${params.email}`,
+      params.jobTitle ? `Job Title: ${params.jobTitle}` : '',
+      params.message ? `Message: ${params.message}` : '',
+      ``,
+      `Review and respond from Admin Panel -> Recruiter Requests -> CV Requests.`,
     ]
       .filter(Boolean)
       .join('\n'),

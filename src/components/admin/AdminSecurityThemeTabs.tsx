@@ -1,5 +1,5 @@
-import { FormEvent, useState } from 'react';
-import { Save, Shield, Download, LogOut } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { Save, Shield, Download, LogOut, Upload, Film } from 'lucide-react';
 
 interface AdminSecurityThemeTabsProps {
   mode: 'theme' | 'security';
@@ -23,14 +23,40 @@ export function AdminSecurityThemeTabs({
   notify,
 }: AdminSecurityThemeTabsProps) {
   const [themeForm, setThemeForm] = useState<any>(theme || {});
+  const [uploadingField, setUploadingField] = useState<string>('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [mfaSetup, setMfaSetup] = useState<{ secret: string; qrDataUrl: string } | null>(null);
   const [mfaCode, setMfaCode] = useState('');
 
+  useEffect(() => {
+    if (theme) setThemeForm(theme);
+  }, [theme]);
+
   const authHeaders = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
+  };
+
+  const handleUploadMedia = async (field: string, file: File) => {
+    setUploadingField(field);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/theme/upload-media', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Media upload failed');
+      setThemeForm((prev: any) => ({ ...prev, [field]: data.url }));
+      notify(`Uploaded ${field.replace('bg_', '').replace(/_/g, ' ')} successfully. Save Visual Settings to publish.`);
+    } catch (err: any) {
+      notify(err?.message || 'Media upload failed.');
+    } finally {
+      setUploadingField('');
+    }
   };
 
   if (mode === 'theme') {
@@ -43,81 +69,281 @@ export function AdminSecurityThemeTabs({
       });
       if (res.ok) {
         await onReload();
-        notify('Visual, animation, and SEO settings saved.');
+        notify('Theme, Video Background, RAG & SEO settings saved.');
       }
     };
 
     return (
-      <form onSubmit={handleSaveTheme} className="space-y-5 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div>
-            <h3 className="font-display text-lg font-semibold text-white">Theme, Motion &amp; SEO Settings</h3>
-            <p className="text-xs text-slate-400">Control 3D WebGL scene, intro sequence, profile selector, and SEO metadata.</p>
+      <form onSubmit={handleSaveTheme} className="space-y-6">
+        <div className="space-y-5 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+            <div>
+              <h3 className="font-display text-lg font-semibold text-white">
+                Theme, Cinematic Video Background &amp; SEO
+              </h3>
+              <p className="text-xs text-slate-400">
+                Control ambient hero video/image/gradient modes, 3D WebGL scene, intro sequence, and RAG retrieval tuning.
+              </p>
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span>Save Visual Settings</span>
+            </button>
           </div>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
-          >
-            <Save className="h-3.5 w-3.5" />
-            <span>Save Visual Settings</span>
-          </button>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Primary Accent Color</label>
+              <input
+                type="text"
+                value={themeForm.accent_color || '#dc2626'}
+                onChange={(e) => setThemeForm({ ...themeForm, accent_color: e.target.value })}
+                className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 font-mono text-sm text-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">SEO Page Title</label>
+              <input
+                type="text"
+                value={themeForm.seo_title || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, seo_title: e.target.value })}
+                className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs text-slate-400">SEO Meta Description</label>
+              <textarea
+                rows={2}
+                value={themeForm.seo_description || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, seo_description: e.target.value })}
+                className="w-full rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-sm text-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-6 rounded-lg border border-zinc-800 bg-[#07080B] p-4 text-sm text-slate-200">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(themeForm.intro_enabled)}
+                onChange={(e) => setThemeForm({ ...themeForm, intro_enabled: e.target.checked ? 1 : 0 })}
+              />
+              <span>Enable Cinematic Intro</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(themeForm.profile_selector_enabled)}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, profile_selector_enabled: e.target.checked ? 1 : 0 })
+                }
+              />
+              <span>Enable Profile Selector</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(themeForm.three_d_enabled)}
+                onChange={(e) => setThemeForm({ ...themeForm, three_d_enabled: e.target.checked ? 1 : 0 })}
+              />
+              <span>Enable 3D Hero Scene</span>
+            </label>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Primary Accent Color</label>
-            <input
-              type="text"
-              value={themeForm.accent_color || '#dc2626'}
-              onChange={(e) => setThemeForm({ ...themeForm, accent_color: e.target.value })}
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 font-mono text-sm text-white"
-            />
+        {/* Hero Background & Cinematic Video Settings */}
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
+          <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+            <Film className="h-4 w-4 text-red-400" />
+            <h4 className="font-display text-base font-semibold text-white">
+              Background &amp; Cinematic Video Settings
+            </h4>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">SEO Page Title</label>
-            <input
-              type="text"
-              value={themeForm.seo_title || ''}
-              onChange={(e) => setThemeForm({ ...themeForm, seo_title: e.target.value })}
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
-            />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Active Hero Background Mode</label>
+              <select
+                value={themeForm.bg_mode || 'default'}
+                onChange={(e) => setThemeForm({ ...themeForm, bg_mode: e.target.value })}
+                className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
+              >
+                <option value="default">Default Dark Cinema 3D Scene</option>
+                <option value="gradient">Custom Ambient Gradient</option>
+                <option value="image">Full-Bleed Image Backdrop</option>
+                <option value="video">Seamless Looping Video (MP4 / WebM)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">
+                Dark Contrast Overlay Scrim ({Math.round((themeForm.bg_overlay_opacity ?? 0.72) * 100)}%)
+              </label>
+              <input
+                type="range"
+                min={0.2}
+                max={0.95}
+                step={0.05}
+                value={themeForm.bg_overlay_opacity ?? 0.72}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, bg_overlay_opacity: parseFloat(e.target.value) })
+                }
+                className="mt-2 w-full accent-red-600"
+              />
+            </div>
           </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs text-slate-400">SEO Meta Description</label>
-            <textarea
-              rows={2}
-              value={themeForm.seo_description || ''}
-              onChange={(e) => setThemeForm({ ...themeForm, seo_description: e.target.value })}
-              className="w-full rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-sm text-white"
-            />
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+              <p className="text-xs font-medium text-white">Desktop Background Video (MP4 / WebM, max 40MB)</p>
+              <input
+                type="text"
+                value={themeForm.bg_video_url || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, bg_video_url: e.target.value })}
+                placeholder="/uploads/public/bg_...mp4 or HTTPS URL"
+                className="h-9 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-xs text-white"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded border border-zinc-700 px-3 py-1.5 text-xs text-slate-200 hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{uploadingField === 'bg_video_url' ? 'Uploading…' : 'Upload Desktop Video'}</span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm"
+                  className="sr-only"
+                  onChange={(e) => e.target.files?.[0] && handleUploadMedia('bg_video_url', e.target.files[0])}
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+              <p className="text-xs font-medium text-white">Mobile Video Variant (Optional lightweight MP4/WebM)</p>
+              <input
+                type="text"
+                value={themeForm.bg_mobile_video_url || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, bg_mobile_video_url: e.target.value })}
+                placeholder="/uploads/public/bg_mobile_...mp4"
+                className="h-9 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-xs text-white"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded border border-zinc-700 px-3 py-1.5 text-xs text-slate-200 hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>
+                  {uploadingField === 'bg_mobile_video_url' ? 'Uploading…' : 'Upload Mobile Video'}
+                </span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm"
+                  className="sr-only"
+                  onChange={(e) =>
+                    e.target.files?.[0] && handleUploadMedia('bg_mobile_video_url', e.target.files[0])
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+              <p className="text-xs font-medium text-white">Poster / Reduced-Motion Fallback Image</p>
+              <input
+                type="text"
+                value={themeForm.bg_poster_url || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, bg_poster_url: e.target.value })}
+                placeholder="/uploads/public/poster.jpg"
+                className="h-9 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-xs text-white"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded border border-zinc-700 px-3 py-1.5 text-xs text-slate-200 hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{uploadingField === 'bg_poster_url' ? 'Uploading…' : 'Upload Poster Image'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(e) => e.target.files?.[0] && handleUploadMedia('bg_poster_url', e.target.files[0])}
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-4">
+              <p className="text-xs font-medium text-white">Background Image (Image Mode)</p>
+              <input
+                type="text"
+                value={themeForm.bg_image_url || ''}
+                onChange={(e) => setThemeForm({ ...themeForm, bg_image_url: e.target.value })}
+                placeholder="/uploads/public/bg_image.jpg"
+                className="h-9 w-full rounded border border-zinc-800 bg-[#0D0F14] px-2.5 font-mono text-xs text-white"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded border border-zinc-700 px-3 py-1.5 text-xs text-slate-200 hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span>{uploadingField === 'bg_image_url' ? 'Uploading…' : 'Upload Image'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(e) => e.target.files?.[0] && handleUploadMedia('bg_image_url', e.target.files[0])}
+                />
+              </label>
+            </div>
           </div>
+
+          {themeForm.bg_mode === 'video' && themeForm.bg_video_url ? (
+            <div className="overflow-hidden rounded-lg border border-zinc-800 bg-black">
+              <p className="border-b border-zinc-800 px-3 py-1.5 font-mono text-[11px] text-slate-400">
+                Live Video Preview
+              </p>
+              <video
+                src={themeForm.bg_video_url}
+                poster={themeForm.bg_poster_url || undefined}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="h-44 w-full object-cover"
+              />
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-6 rounded-lg border border-zinc-800 bg-[#07080B] p-4 text-sm text-slate-200">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={Boolean(themeForm.intro_enabled)}
-              onChange={(e) => setThemeForm({ ...themeForm, intro_enabled: e.target.checked ? 1 : 0 })}
-            />
-            <span>Enable Cinematic Intro</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={Boolean(themeForm.profile_selector_enabled)}
-              onChange={(e) => setThemeForm({ ...themeForm, profile_selector_enabled: e.target.checked ? 1 : 0 })}
-            />
-            <span>Enable Profile Selector</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={Boolean(themeForm.three_d_enabled)}
-              onChange={(e) => setThemeForm({ ...themeForm, three_d_enabled: e.target.checked ? 1 : 0 })}
-            />
-            <span>Enable 3D Hero Scene</span>
-          </label>
+        {/* RAG Pipeline Configuration */}
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
+          <h4 className="font-display text-base font-semibold text-white">RAG Retrieval Tuning</h4>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Top-K Chunks (3 – 12)</label>
+              <input
+                type="number"
+                min={3}
+                max={12}
+                value={themeForm.rag_top_k ?? 6}
+                onChange={(e) => setThemeForm({ ...themeForm, rag_top_k: Number(e.target.value) })}
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Chunk Size (chars)</label>
+              <input
+                type="number"
+                min={350}
+                max={2000}
+                value={themeForm.rag_chunk_size ?? 800}
+                onChange={(e) => setThemeForm({ ...themeForm, rag_chunk_size: Number(e.target.value) })}
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Lexical vs Semantic Weight (0.2 – 0.95)</label>
+              <input
+                type="number"
+                min={0.2}
+                max={0.95}
+                step={0.05}
+                value={themeForm.rag_hybrid_weight ?? 0.65}
+                onChange={(e) =>
+                  setThemeForm({ ...themeForm, rag_hybrid_weight: parseFloat(e.target.value) })
+                }
+                className="h-9 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+              />
+            </div>
+          </div>
         </div>
       </form>
     );
@@ -176,10 +402,27 @@ export function AdminSecurityThemeTabs({
     notify('Database JSON backup exported.');
   };
 
+  const handleBackupRestore = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const res = await fetch('/api/admin/backup/restore', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Restore failed.');
+      await onReload();
+      notify('Profile & theme restored cleanly from backup JSON.');
+    } catch (err: any) {
+      notify(err?.message || 'Invalid backup file.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Password Rotation */}
         <form onSubmit={handleChangePassword} className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
           <h3 className="font-display text-base font-semibold text-white">Rotate Admin Password</h3>
           <input
@@ -207,7 +450,6 @@ export function AdminSecurityThemeTabs({
           </button>
         </form>
 
-        {/* TOTP MFA + Backup */}
         <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -252,15 +494,25 @@ export function AdminSecurityThemeTabs({
             </form>
           ) : null}
 
-          <div className="border-t border-zinc-800 pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-4">
             <button
               type="button"
               onClick={handleBackupDownload}
               className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-medium text-white hover:border-zinc-500"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Export Portfolio JSON Backup</span>
+              <span>Export JSON Backup</span>
             </button>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-medium text-white hover:border-zinc-500">
+              <Upload className="h-3.5 w-3.5" />
+              <span>Restore from Backup JSON</span>
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(e) => e.target.files?.[0] && handleBackupRestore(e.target.files[0])}
+                className="sr-only"
+              />
+            </label>
           </div>
         </div>
       </div>

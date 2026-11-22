@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, ArrowUpRight, Eye, Github, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowUpRight, Eye, Github, Play, ExternalLink } from 'lucide-react';
 import { ProfileMode, ProjectItem } from '../types/portfolio';
 
 interface ProjectCarouselProps {
@@ -14,6 +14,19 @@ interface CollectionRowProps {
   items: ProjectItem[];
   onSelectProject: (project: ProjectItem) => void;
   onQuickView: (project: ProjectItem) => void;
+}
+
+function getStatusColorClass(status?: string): string {
+  switch (status) {
+    case 'Completed':
+      return 'text-emerald-400';
+    case 'In Progress':
+      return 'text-amber-400';
+    case 'Experimental':
+      return 'text-sky-400';
+    default:
+      return 'text-slate-400';
+  }
 }
 
 function CollectionRow({ title, subtitle, items, onSelectProject, onQuickView }: CollectionRowProps) {
@@ -70,6 +83,8 @@ function CollectionRow({ title, subtitle, items, onSelectProject, onQuickView }:
       >
         {items.map((project) => {
           const hasImgError = imgErrors[project.id];
+          const statusLabel = project.status || 'Completed';
+
           return (
             <article
               key={project.id}
@@ -100,12 +115,14 @@ function CollectionRow({ title, subtitle, items, onSelectProject, onQuickView }:
 
               <div className="flex flex-1 flex-col justify-between p-5">
                 <div>
-                  <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400">
+                  <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px] font-medium">
                     <span className="text-[#e50914] uppercase">{project.category}</span>
-                    {project.is_featured ? (
+                    <span className="text-zinc-600" aria-hidden="true">·</span>
+                    <span className={getStatusColorClass(statusLabel)}>{statusLabel}</span>
+                    {project.live_url && project.live_demo_verified ? (
                       <>
-                        <span aria-hidden="true">·</span>
-                        <span className="text-slate-300">Featured</span>
+                        <span className="text-zinc-600" aria-hidden="true">·</span>
+                        <span className="text-slate-200">Live</span>
                       </>
                     ) : null}
                   </div>
@@ -136,7 +153,7 @@ function CollectionRow({ title, subtitle, items, onSelectProject, onQuickView }:
                       <span>Open Case Study</span>
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => onQuickView(project)}
@@ -146,6 +163,18 @@ function CollectionRow({ title, subtitle, items, onSelectProject, onQuickView }:
                         <Eye className="h-3 w-3" />
                         <span>Quick</span>
                       </button>
+                      {project.live_url ? (
+                        <a
+                          href={project.live_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`${project.title} live demo`}
+                          title="Open Verified Live Demo"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-800 text-emerald-400 hover:border-emerald-500/60 hover:text-emerald-300"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : null}
                       {project.github_url ? (
                         <a
                           href={project.github_url}
@@ -177,7 +206,14 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
   const filtered =
     activeFilter === 'All' ? projects : projects.filter((p) => p.category === activeFilter);
 
-  const spotlights = projects.filter((p) => p.is_featured === 1).slice(0, 2);
+  const spotlights = (() => {
+    if (profileMode === 'developer') {
+      const devFirst = projects.filter((p) => p.live_url || p.category === 'Full-Stack Development');
+      if (devFirst.length >= 2) return devFirst.slice(0, 2);
+    }
+    return projects.filter((p) => p.is_featured === 1).slice(0, 2);
+  })();
+
   const featured = filtered.filter((p) => p.is_featured === 1);
   const genAi = filtered.filter((p) => p.category === 'Generative AI & RAG');
   const cv = filtered.filter((p) => p.category === 'Computer Vision');
@@ -191,7 +227,7 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
       {
         key: 'featured',
         title: 'Featured Systems',
-        subtitle: 'Flagship multi-agent, RAG, and production-oriented computer vision architectures',
+        subtitle: 'Flagship multi-agent, RAG, live deployed full-stack, and computer vision architectures',
         items: featured,
       },
       {
@@ -215,7 +251,7 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
       {
         key: 'fullstack',
         title: 'Full-Stack Engineering',
-        subtitle: 'FastAPI, Next.js 14, TypeScript, PostgreSQL, Redis, and Docker Compose applications',
+        subtitle: 'FastAPI, Next.js, TypeScript, Express, PostgreSQL, and Docker Compose applications',
         items: fullStack,
       },
     ];
@@ -227,14 +263,14 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
 
   return (
     <section id="projects" className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
-      {/* Two-Up Originals Spotlight (Video 1 inspired) */}
+      {/* Two-Up Originals Spotlight */}
       {spotlights.length >= 2 && activeFilter === 'All' ? (
         <div className="mb-16">
           <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
-            Originals
+            {profileMode === 'developer' ? 'Production Systems' : 'Originals'}
           </p>
           <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-            Flagship Builds
+            {profileMode === 'developer' ? 'Deployed & Full-Stack Spotlights' : 'Flagship Builds'}
           </h2>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -260,8 +296,9 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#08090C] via-[#08090C]/70 to-transparent" />
 
                 <div className="relative z-10 space-y-2.5">
-                  <p className="text-[11px] font-semibold tracking-[0.22em] text-[#e50914] uppercase">
-                    Original · {spot.category}
+                  <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-[#e50914] uppercase">
+                    Original · {spot.category} · {spot.status || 'Completed'}
+                    {spot.live_url ? ' · Live Demo' : ''}
                   </p>
                   <h3 className="font-display text-3xl font-bold tracking-wide text-white uppercase sm:text-4xl">
                     {spot.title.split('—')[0].trim()}
@@ -269,7 +306,7 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
                   <p className="max-w-lg text-sm leading-relaxed text-slate-300">
                     {spot.tagline}
                   </p>
-                  <div className="flex items-center gap-4 pt-2 text-xs font-semibold text-white">
+                  <div className="flex flex-wrap items-center gap-4 pt-2 text-xs font-semibold text-white">
                     <span className="inline-flex items-center gap-1.5">
                       <Play className="h-3.5 w-3.5 fill-white" />
                       <span>Inspect Architecture</span>
@@ -348,7 +385,9 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
               ) : null}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F14] via-black/45 to-transparent" />
               <div className="absolute bottom-4 left-6 right-6">
-                <p className="text-xs font-medium text-[#e50914] uppercase">{quickViewProject.category}</p>
+                <p className="font-mono text-xs font-medium text-[#e50914] uppercase">
+                  {quickViewProject.category} · {quickViewProject.status || 'Completed'}
+                </p>
                 <h3 className="mt-1 font-display text-3xl font-bold text-white uppercase">
                   {quickViewProject.title}
                 </h3>
@@ -356,10 +395,26 @@ export function ProjectCarousel({ projects, profileMode, onSelectProject }: Proj
             </div>
             <div className="space-y-4 p-6">
               <p className="text-sm leading-relaxed text-slate-300">{quickViewProject.overview}</p>
+              {quickViewProject.limitations ? (
+                <p className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+                  Scope note: {quickViewProject.limitations}
+                </p>
+              ) : null}
               <p className="font-mono text-xs text-slate-400">
                 {quickViewProject.technologies.join(' · ')}
               </p>
               <div className="flex flex-wrap items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+                {quickViewProject.live_url ? (
+                  <a
+                    href={quickViewProject.live_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700/60 bg-emerald-950/30 px-3.5 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-900/40"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>Live Demo</span>
+                  </a>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setQuickViewProject(null)}

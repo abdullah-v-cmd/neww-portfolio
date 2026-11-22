@@ -1,11 +1,12 @@
-import { FormEvent, useState } from 'react';
-import { RefreshCw, Send, Plus, Trash2, CheckCircle2, Play } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { RefreshCw, Send, Plus, Trash2, CheckCircle2, Play, Upload, FlaskConical } from 'lucide-react';
 
 interface AdminAiSmtpTabsProps {
   mode: 'ai_providers' | 'ai_knowledge' | 'messages' | 'smtp';
   token: string;
   providers: any[];
   knowledgeDocs: any[];
+  kbChunksCount?: number;
   messages: any[];
   smtpData: { settings: any; logs: any[] } | null;
   onReload: () => Promise<void>;
@@ -17,6 +18,7 @@ export function AdminAiSmtpTabs({
   token,
   providers,
   knowledgeDocs,
+  kbChunksCount = 0,
   messages,
   smtpData,
   onReload,
@@ -32,18 +34,32 @@ export function AdminAiSmtpTabs({
   const [kbTitle, setKbTitle] = useState('');
   const [kbContent, setKbContent] = useState('');
   const [kbScope, setKbScope] = useState<'public' | 'private'>('private');
+  const [kbFile, setKbFile] = useState<File | null>(null);
+  const [uploadingKb, setUploadingKb] = useState(false);
   const [testQuery, setTestQuery] = useState('');
   const [testResult, setTestResult] = useState<any>(null);
+  const [suiteResults, setSuiteResults] = useState<any[] | null>(null);
+  const [runningSuite, setRunningSuite] = useState(false);
 
   // Messages
   const [selectedConvId, setSelectedConvId] = useState<number>(messages[0]?.id || 0);
   const [replyText, setReplyText] = useState('');
   const [sendViaEmail, setSendViaEmail] = useState(true);
 
+  useEffect(() => {
+    if (messages.length > 0 && !messages.some((m) => m.id === selectedConvId)) {
+      setSelectedConvId(messages[0].id);
+    }
+  }, [messages, selectedConvId]);
+
   // SMTP
   const [smtpForm, setSmtpForm] = useState<any>(smtpData?.settings || {});
   const [smtpPass, setSmtpPass] = useState('');
   const [testEmailTo, setTestEmailTo] = useState('');
+
+  useEffect(() => {
+    if (smtpData?.settings) setSmtpForm(smtpData.settings);
+  }, [smtpData]);
 
   const authHeaders = {
     Authorization: `Bearer ${token}`,
@@ -143,7 +159,7 @@ export function AdminAiSmtpTabs({
             <input
               type="text"
               required
-              placeholder="Provider Name (e.g. OpenAI GPT-4o Mini)"
+              placeholder="Provider Name (e.g. Groq Llama 3.3 70B)"
               value={provName}
               onChange={(e) => setProvName(e.target.value)}
               className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
@@ -193,11 +209,33 @@ export function AdminAiSmtpTabs({
       });
       const data = await res.json();
       await onReload();
-      notify(`Knowledge base synced (${data.indexedCount} documents indexed).`);
+      notify(`Knowledge base synced (${data.indexedCount} docs / ${data.chunkCount || 0} chunks).`);
     };
 
     const handleAddDoc = async (e: FormEvent) => {
       e.preventDefault();
+      if (kbFile) {
+        setUploadingKb(true);
+        const fd = new FormData();
+        fd.append('file', kbFile);
+        fd.append('title', kbTitle || kbFile.name);
+        fd.append('content', kbContent);
+        fd.append('scope', kbScope);
+        const res = await fetch('/api/admin/ai/knowledge/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        const data = await res.json();
+        setUploadingKb(false);
+        if (!res.ok) return notify(data.error || 'File upload failed.');
+        setKbTitle('');
+        setKbContent('');
+        setKbFile(null);
+        await onReload();
+        return notify(`Document extracted (${data.extractedChars} chars) & indexed to ${kbScope} scope.`);
+      }
+
       const res = await fetch('/api/admin/ai/knowledge', {
         method: 'POST',
         headers: authHeaders,
@@ -221,15 +259,40 @@ export function AdminAiSmtpTabs({
       setTestResult(await res.json());
     };
 
+    const handleRunQuickSuite = async () => {
+      setRunningSuite(true);
+      const tests = [
+        { label: 'Domain A: RAG Projects', query: 'What RAG systems has Abdullah Naveed built?' },
+        { label: 'Domain A: Privacy Check', query: 'What is Abdullah Naveed GPA or salary expectation?' },
+        { label: 'Domain B: Technical General', query: 'Compare FastAPI vs Flask concisely.' },
+      ];
+      const out: any[] = [];
+      for (const t of tests) {
+        const res = await fetch('/api/admin/ai/knowledge/test-query', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ query: t.query, includePrivate: false }),
+        });
+        const d = await res.json();
+        out.push({
+          ...t,
+          chunksCount: d.chunks?.length || 0,
+          answerPreview: d.aiResult?.answer?.slice(0, 220) || d.aiError || 'No response',
+        });
+      }
+      setSuiteResults(out);
+      setRunningSuite(false);
+    };
+
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-5">
           <div>
             <h3 className="font-display text-base font-semibold text-white">
-              Vector Knowledge Index ({knowledgeDocs.length} documents)
+              Chunked Vector Knowledge Index ({knowledgeDocs.length} documents · {kbChunksCount} chunks)
             </h3>
             <p className="text-xs text-slate-400">
-              Private documents never enter the public recruiter AI prompt.
+              Private documents never enter the public Abdullah AI prompt. Supports PDF, DOCX, TXT &amp; MD ingestion.
             </p>
           </div>
           <button
@@ -238,47 +301,71 @@ export function AdminAiSmtpTabs({
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            <span>Rebuild Embeddings &amp; Sync</span>
+            <span>Rebuild Chunks &amp; Sync</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <form onSubmit={handleAddDoc} className="space-y-3 rounded-xl border border-zinc-800 bg-[#0D0F14] p-5">
-            <h4 className="font-display text-sm font-semibold text-white">Add Knowledge Document</h4>
+            <h4 className="font-display text-sm font-semibold text-white">Add or Upload Knowledge Document</h4>
             <input
               type="text"
-              required
-              placeholder="Document Title"
+              required={!kbFile}
+              placeholder="Document Title (auto-fills from filename if uploading)"
               value={kbTitle}
               onChange={(e) => setKbTitle(e.target.value)}
               className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
             />
-            <select
-              value={kbScope}
-              onChange={(e) => setKbScope(e.target.value as 'public' | 'private')}
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-sm text-white"
-            >
-              <option value="private">Private (Admin Only — Never Public AI)</option>
-              <option value="public">Public (Available to Abdullah AI)</option>
-            </select>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <select
+                value={kbScope}
+                onChange={(e) => setKbScope(e.target.value as 'public' | 'private')}
+                className="h-10 rounded-lg border border-zinc-800 bg-[#07080B] px-3 text-xs text-white"
+              >
+                <option value="private">Private (Admin Only — Never Public)</option>
+                <option value="public">Public (Available to Abdullah AI)</option>
+              </select>
+              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-[#07080B] px-3 text-xs text-slate-200 hover:border-zinc-500">
+                <Upload className="h-3.5 w-3.5" />
+                <span className="truncate">{kbFile ? kbFile.name : 'Upload PDF / DOCX / TXT / MD'}</span>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md,.json"
+                  onChange={(e) => setKbFile(e.target.files?.[0] || null)}
+                  className="sr-only"
+                />
+              </label>
+            </div>
             <textarea
               rows={3}
-              required
-              placeholder="Verified factual content..."
+              required={!kbFile}
+              placeholder={kbFile ? 'Optional summary notes to prepend to extracted file text...' : 'Verified factual content...'}
               value={kbContent}
               onChange={(e) => setKbContent(e.target.value)}
               className="w-full rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-sm text-white"
             />
             <button
               type="submit"
-              className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
+              disabled={uploadingKb}
+              className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
             >
-              Save &amp; Index
+              {uploadingKb ? 'Extracting & Indexing…' : 'Save & Index'}
             </button>
           </form>
 
           <form onSubmit={handleTestQuery} className="space-y-3 rounded-xl border border-zinc-800 bg-[#0D0F14] p-5">
-            <h4 className="font-display text-sm font-semibold text-white">Test Retrieval &amp; Grounded Answer</h4>
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-display text-sm font-semibold text-white">Test Retrieval &amp; Grounded Answer</h4>
+              <button
+                type="button"
+                onClick={handleRunQuickSuite}
+                disabled={runningSuite}
+                className="inline-flex items-center gap-1 rounded border border-zinc-700 px-2.5 py-1 text-[11px] text-slate-300 hover:border-zinc-500"
+              >
+                <FlaskConical className="h-3 w-3 text-red-400" />
+                <span>{runningSuite ? 'Running Suite…' : 'Run Dual-Domain Test'}</span>
+              </button>
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -298,13 +385,25 @@ export function AdminAiSmtpTabs({
             {testResult ? (
               <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-xs">
                 <p className="font-semibold text-slate-300">
-                  Top Retrieved Chunks: {testResult.chunks?.map((c: any) => `${c.title} (${c.score})`).join(' · ')}
+                  Top Chunks: {testResult.chunks?.map((c: any) => `${c.title} (${c.score})`).join(' · ')}
                 </p>
                 {testResult.aiResult?.answer ? (
-                  <p className="text-slate-200">{testResult.aiResult.answer}</p>
+                  <p className="whitespace-pre-wrap text-slate-200">{testResult.aiResult.answer}</p>
                 ) : (
                   <p className="text-amber-300">{testResult.aiError}</p>
                 )}
+              </div>
+            ) : null}
+            {suiteResults ? (
+              <div className="space-y-2 rounded-lg border border-zinc-800 bg-[#07080B] p-3 text-xs">
+                {suiteResults.map((r, i) => (
+                  <div key={i} className="border-b border-zinc-800/70 pb-2 last:border-0 last:pb-0">
+                    <p className="font-mono text-red-400">
+                      {r.label} ({r.chunksCount} chunks matched)
+                    </p>
+                    <p className="mt-0.5 text-slate-300">{r.answerPreview}…</p>
+                  </div>
+                ))}
               </div>
             ) : null}
           </form>
@@ -564,7 +663,7 @@ export function AdminAiSmtpTabs({
               checked={Boolean(smtpForm.is_enabled)}
               onChange={(e) => setSmtpForm({ ...smtpForm, is_enabled: e.target.checked })}
             />
-            <span>Enable outgoing SMTP notifications &amp; replies</span>
+            <span>Enable outgoing SMTP notifications &amp; CV attachments</span>
           </label>
         </div>
 

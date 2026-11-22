@@ -1,10 +1,11 @@
 import { FormEvent, useState } from 'react';
-import { Mail, Github, Linkedin, Send, Paperclip, MessageSquare, Search, CheckCircle2 } from 'lucide-react';
+import { Mail, Github, Linkedin, Send, Paperclip, MessageSquare, Search, CheckCircle2, FileCheck2 } from 'lucide-react';
 import { ProfileSettings } from '../types/portfolio';
 
 interface ContactSectionProps {
   profile: ProfileSettings;
   onOpenAI: () => void;
+  onRequestCv: () => void;
 }
 
 interface ThreadMessage {
@@ -16,7 +17,7 @@ interface ThreadMessage {
   created_at: string;
 }
 
-export function ContactSection({ profile, onOpenAI }: ContactSectionProps) {
+export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectionProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
@@ -167,7 +168,15 @@ export function ContactSection({ profile, onOpenAI }: ContactSectionProps) {
                 ) : null}
               </div>
 
-              <div className="border-t border-zinc-800 pt-4">
+              <div className="space-y-2.5 border-t border-zinc-800 pt-4">
+                <button
+                  type="button"
+                  onClick={onRequestCv}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e50914] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-500"
+                >
+                  <FileCheck2 className="h-4 w-4" />
+                  <span>Request Official CV</span>
+                </button>
                 <button
                   type="button"
                   onClick={onOpenAI}
