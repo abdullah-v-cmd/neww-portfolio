@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Layers, Briefcase, Search, X, Cpu, CheckCircle2 } from 'lucide-react';
 import { CompanyExperience, ProjectItem, SkillCategory, SkillItem } from '../types/portfolio';
+import { WaterFlowText } from './MotionReveal';
 
 interface SkillsUniverseProps {
   categories: SkillCategory[];
@@ -113,13 +114,16 @@ export function SkillsUniverse({
     <section id="skills" className="border-t border-zinc-900 bg-[#08090C]">
       <div className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+          <div className="space-y-1">
             <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
-              03 · Everything Connects
+              03 · Technical Expertise · My Skill Universe
             </p>
-            <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-              My Skill Universe
-            </h2>
+            <WaterFlowText
+              as="h2"
+              text="Engineering the Future, One Solution at a Time"
+              accentVariant="cyan-blue"
+              className="mt-1 font-display text-3xl font-bold tracking-wide uppercase sm:text-4xl lg:text-5xl"
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

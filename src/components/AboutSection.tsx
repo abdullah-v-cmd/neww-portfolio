@@ -1,5 +1,6 @@
 import { ProfileSettings } from '../types/portfolio';
 import { HeroPortrait3D } from './HeroPortrait3D';
+import { WaterFlowText, WaterText } from './MotionReveal';
 
 interface AboutSectionProps {
   profile: ProfileSettings;
@@ -8,13 +9,16 @@ interface AboutSectionProps {
 export function AboutSection({ profile }: AboutSectionProps) {
   return (
     <section id="about" className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
-      <div className="mb-10">
+      <div className="mb-10 space-y-1">
         <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
           The Cast
         </p>
-        <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-          About Me
-        </h2>
+        <WaterFlowText
+          as="h2"
+          text="About Me"
+          accentVariant="cyan-blue"
+          className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+        />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-zinc-800/90 bg-[#0D0F14]">
@@ -41,23 +45,34 @@ export function AboutSection({ profile }: AboutSectionProps) {
           </div>
 
           <div className="space-y-6 lg:col-span-8">
-            <blockquote className="text-xl font-medium leading-relaxed text-slate-200 sm:text-2xl">
-              &ldquo;I focus on the parts of an AI system users rely on most:{' '}
-              <span className="border-b-2 border-[#e50914] pb-0.5 text-white">
-                the retrieval pipeline that stays grounded
-              </span>
-              ,{' '}
-              <span className="border-b-2 border-blue-500 pb-0.5 text-white">
-                the vision container that recovers itself
-              </span>
-              , and{' '}
-              <span className="border-b-2 border-emerald-500 pb-0.5 text-white">
-                the architecture you can inspect end to end
-              </span>
-              .&rdquo;
-            </blockquote>
+            <WaterFlowText
+              as="h3"
+              text="Building Technology That Makes a Difference"
+              accentVariant="blue-purple"
+              className="font-display text-2xl font-bold tracking-wide uppercase sm:text-3xl"
+            />
 
-            <p className="text-sm leading-relaxed text-slate-300">{profile.bio_long}</p>
+            <WaterText>
+              <blockquote className="text-xl font-medium leading-relaxed text-slate-200 sm:text-2xl">
+                &ldquo;I focus on the parts of an AI system users rely on most:{' '}
+                <span className="border-b-2 border-[#e50914] pb-0.5 text-white">
+                  the retrieval pipeline that stays grounded
+                </span>
+                ,{' '}
+                <span className="border-b-2 border-blue-500 pb-0.5 text-white">
+                  the vision container that recovers itself
+                </span>
+                , and{' '}
+                <span className="border-b-2 border-emerald-500 pb-0.5 text-white">
+                  the architecture you can inspect end to end
+                </span>
+                .&rdquo;
+              </blockquote>
+            </WaterText>
+
+            <WaterText delayMs={90}>
+              <p className="text-sm leading-relaxed text-slate-300">{profile.bio_long}</p>
+            </WaterText>
 
             <div className="grid grid-cols-1 gap-6 border-t border-zinc-800 pt-6 sm:grid-cols-3">
               <div>

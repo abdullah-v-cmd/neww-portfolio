@@ -12,6 +12,7 @@ import {
   Film,
 } from 'lucide-react';
 import { ProfileMode, ProjectItem } from '../types/portfolio';
+import { WaterFlowText } from './MotionReveal';
 
 interface ProjectCarouselProps {
   projects: ProjectItem[];
@@ -466,12 +467,17 @@ export function ProjectCarousel({
       {/* Two-Up Originals Spotlight */}
       {spotlights.length >= 2 && activeFilter === 'All' ? (
         <div className="mb-16">
-          <p className="text-[11px] font-semibold tracking-[0.26em] text-blue-400 uppercase">
-            {profileMode === 'developer' ? 'Production Systems' : 'Featured Premieres'}
-          </p>
-          <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-            {profileMode === 'developer' ? 'Deployed & Full-Stack Spotlights' : 'Flagship Builds'}
-          </h2>
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold tracking-[0.26em] text-blue-400 uppercase">
+              {profileMode === 'developer' ? 'Production Systems' : 'Featured Premieres · Flagship Builds'}
+            </p>
+            <WaterFlowText
+              as="h2"
+              text={profileMode === 'developer' ? 'Deployed & Full-Stack Spotlights' : 'Where Ideas Become Reality'}
+              accentVariant="cinema"
+              className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+            />
+          </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {spotlights.map((spot, idx) => (
@@ -524,13 +530,16 @@ export function ProjectCarousel({
 
       {/* Filter Header */}
       <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
+        <div className="space-y-1">
           <p className="text-[11px] font-semibold tracking-[0.24em] text-[#e50914] uppercase">
             Complete Catalog
           </p>
-          <h2 className="mt-1 font-display text-3xl font-bold tracking-wide text-white uppercase sm:text-4xl">
-            Systems &amp; Repositories
-          </h2>
+          <WaterFlowText
+            as="h2"
+            text="Systems & Repositories"
+            accentVariant="cyan-blue"
+            className="mt-1 font-display text-3xl font-bold tracking-wide uppercase sm:text-4xl"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-800 bg-[#0D0F14] p-1">

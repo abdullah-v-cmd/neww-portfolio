@@ -20,7 +20,8 @@ import { HeroMontageBackdrop } from './components/HeroMontageBackdrop';
 import { VideoBackgroundLayer } from './components/VideoBackgroundLayer';
 import { CinematicIntro } from './components/CinematicIntro';
 import { MonogramLogo } from './components/MonogramLogo';
-import { MotionReveal } from './components/MotionReveal';
+import { MotionReveal, WaterFlowText } from './components/MotionReveal';
+import { BackToTopButton } from './components/BackToTopButton';
 import { FullStorySection } from './components/FullStorySection';
 import { ProjectCarousel } from './components/ProjectCarousel';
 import { ProjectOpeningTransition } from './components/ProjectOpeningTransition';
@@ -235,6 +236,10 @@ export default function App() {
     }
   };
 
+  const handleIntroComplete = useCallback(() => {
+    setIntroDismissed(true);
+  }, []);
+
   const handleResumeDownload = async () => {
     try {
       const res = await fetch('/api/public/resume/track', { method: 'POST' });
@@ -410,15 +415,23 @@ export default function App() {
             <div>
               <section className="border-t border-zinc-900 bg-[#060608]">
                 <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
-                  <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
-                    The Next Episode
-                  </p>
-                  <h2 className="mt-2 font-display text-5xl font-bold tracking-wide text-white uppercase sm:text-7xl">
-                    To Be Continued...
-                  </h2>
-                  <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
-                    Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
+                      The Next Episode · To Be Continued
+                    </p>
+                    <WaterFlowText
+                      as="h2"
+                      text="Let's Build Something Extraordinary"
+                      accentVariant="cinema"
+                      waterIntensity={1.1}
+                      blurIntensity={8}
+                      reducedMotion={minimalMotion}
+                      className="mt-2 text-center font-display text-4xl font-bold tracking-wide uppercase sm:text-6xl lg:text-7xl"
+                    />
+                    <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
+                      Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
+                    </p>
+                  </div>
 
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                     <button
@@ -495,7 +508,7 @@ export default function App() {
           showProfileSelector={Boolean(theme?.profile_selector_enabled)}
           avatarUrl={profile.avatar_url}
           onSelectProfile={(mode) => setProfileMode(mode)}
-          onComplete={() => setIntroDismissed(true)}
+          onComplete={handleIntroComplete}
         />
       ) : null}
 
@@ -629,12 +642,22 @@ export default function App() {
                   </p>
 
                   <div>
-                    <h1 className="font-display text-5xl font-bold leading-[0.94] tracking-tight text-white uppercase sm:text-7xl xl:text-8xl">
+                    <h1 className="water-text-flow font-display text-5xl font-bold leading-[0.94] tracking-tight uppercase sm:text-7xl xl:text-8xl">
                       {profile.full_name}
                     </h1>
                     <p className="mt-2 font-display text-xl font-bold tracking-[0.12em] bg-gradient-to-r from-blue-400 via-purple-400 to-red-400 bg-clip-text text-transparent uppercase sm:text-2xl xl:text-3xl">
                       AI/ML Engineer | Full-Stack Developer | GenAI Engineer
                     </p>
+                    <WaterFlowText
+                      as="p"
+                      text="Turning Ideas Into Intelligent Solutions"
+                      scrollActivation={false}
+                      waterIntensity={0.85}
+                      blurIntensity={6}
+                      accentVariant="cyan-blue"
+                      reducedMotion={minimalMotion}
+                      className="mt-2.5 font-display text-lg font-semibold tracking-wider uppercase sm:text-xl"
+                    />
                   </div>
 
                   <p className="font-mono text-xs text-slate-400">
@@ -763,9 +786,15 @@ export default function App() {
         <section id="continue-series" className="border-b border-zinc-900 bg-[#07080D]">
           <div className="mx-auto max-w-[1360px] px-6 py-10 lg:px-10">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
-                Continue Exploring
-              </h2>
+              <WaterFlowText
+                as="h2"
+                text="Continue Exploring"
+                accentVariant="cyan-blue"
+                waterIntensity={0.85}
+                blurIntensity={6}
+                reducedMotion={minimalMotion}
+                className="font-display text-2xl font-bold tracking-wide uppercase"
+              />
               <span className="text-xs text-slate-400">
                 Jump directly to any episode in the series
               </span>
@@ -829,6 +858,13 @@ export default function App() {
             >
               Admin Portal
             </button>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: minimalMotion ? 'auto' : 'smooth' })}
+              className="text-blue-400 hover:text-white"
+            >
+              Back to Top ↑
+            </button>
           </div>
         </div>
       </footer>
@@ -842,6 +878,10 @@ export default function App() {
       <ProjectDetailModal project={selectedProject} onClose={handleCloseProject} />
 
       <CvRequestModal isOpen={cvModalOpen} onClose={() => setCvModalOpen(false)} />
+
+      <BackToTopButton
+        hidden={aiChatOpen || Boolean(openingProject) || Boolean(selectedProject) || !introDismissed}
+      />
 
       <AbdullahAIChat
         isOpen={aiChatOpen}

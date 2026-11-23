@@ -1,4 +1,5 @@
 import { Download, MessageSquare, FileCheck2 } from 'lucide-react';
+import { WaterFlowText } from './MotionReveal';
 import {
   CertificateItem,
   CompanyExperience,
@@ -35,13 +36,19 @@ export function FullStorySection({
   return (
     <section id="story" className="border-t border-zinc-900 bg-[#08090C]">
       <div className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
-        <div className="mb-10">
+        <div className="mb-10 space-y-1.5">
           <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
-            The Screenplay
+            The Screenplay · AI &amp; Machine Learning
           </p>
-          <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-            The Full Story
-          </h2>
+          <WaterFlowText
+            as="h2"
+            text="Intelligence. Innovation. Possibilities."
+            accentVariant="blue-purple"
+            className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+          />
+          <p className="text-xs text-slate-400">
+            The Full Story — Verified Engineering Dossier &amp; Applied Systems Architecture
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">

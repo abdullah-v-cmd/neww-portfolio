@@ -243,10 +243,15 @@ publicRouter.get('/cv-download/:token', (req, res) => {
   return res.sendFile(resolved);
 });
 
-publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res) => {
+const MAX_AI_SESSION_MESSAGES = 12;
+const MAX_AI_MESSAGE_CHARS = 600;
+
+publicRouter.post('/ai/chat', rateLimit('ai_chat', 18, 600_000), async (req, res) => {
   const { message, sessionId, profileMode, stream } = req.body || {};
-  if (typeof message !== 'string' || !message.trim() || message.length > 1500) {
-    return res.status(400).json({ error: 'Please provide a valid question under 1500 characters.' });
+  if (typeof message !== 'string' || !message.trim() || message.trim().length > MAX_AI_MESSAGE_CHARS) {
+    return res.status(400).json({
+      error: `Please enter a valid question under ${MAX_AI_MESSAGE_CHARS} characters.`,
+    });
   }
 
   const sid = typeof sessionId === 'string' && sessionId.trim() ? sessionId.trim().slice(0, 80) : generateSecureToken(12);
@@ -258,6 +263,20 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     conv = { id: Number(info.lastInsertRowid) };
   }
 
+  const countRow = db
+    .prepare(`SELECT COUNT(*) as count FROM ai_messages WHERE conversation_id = ? AND role = 'user'`)
+    .get(conv.id) as { count: number };
+  const usedCount = Number(countRow?.count || 0);
+
+  if (usedCount >= MAX_AI_SESSION_MESSAGES) {
+    return res.status(429).json({
+      error: `Session message limit reached (${MAX_AI_SESSION_MESSAGES} messages per session). Clear the chat to start a fresh session or send a direct message to Abdullah.`,
+      limitReached: true,
+      remainingMessages: 0,
+      maxMessages: MAX_AI_SESSION_MESSAGES,
+    });
+  }
+
   const historyRows = db
     .prepare('SELECT role, content FROM ai_messages WHERE conversation_id = ? ORDER BY id ASC LIMIT 14')
     .all(conv.id) as Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -267,6 +286,8 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     'user',
     message.trim()
   );
+
+  const remainingMessages = Math.max(0, MAX_AI_SESSION_MESSAGES - (usedCount + 1));
 
   let clientClosed = false;
   let heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -391,8 +412,11 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
         `data: ${JSON.stringify({
           type: 'done',
           sessionId: sid,
-          citations: result.citations,
-          providerUsed: result.providerUsed,
+          answer: result.answer,
+          citations: [],
+          providerUsed: 'Abdullah AI',
+          remainingMessages,
+          maxMessages: MAX_AI_SESSION_MESSAGES,
           messageDispatched,
         })}\n\n`
       );
@@ -402,8 +426,10 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
     return res.json({
       sessionId: sid,
       answer: result.answer,
-      citations: result.citations,
-      providerUsed: result.providerUsed,
+      citations: [],
+      providerUsed: 'Abdullah AI',
+      remainingMessages,
+      maxMessages: MAX_AI_SESSION_MESSAGES,
       messageDispatched,
     });
   } catch (err: any) {
@@ -411,7 +437,7 @@ publicRouter.post('/ai/chat', rateLimit('ai_chat', 25, 60_000), async (req, res)
       clearInterval(heartbeat);
       heartbeat = null;
     }
-    const msg = err?.message || 'Unable to reach AI provider.';
+    const msg = err?.message || 'Unable to reach Abdullah AI right now.';
     if (stream) {
       if (!res.writableEnded) {
         res.write(`data: ${JSON.stringify({ type: 'error', error: msg })}\n\n`);

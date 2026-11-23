@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Building2, MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { CompanyExperience, ProjectItem } from '../types/portfolio';
+import { WaterFlowText } from './MotionReveal';
 
 interface ExperienceTimelineProps {
   companies: CompanyExperience[];
@@ -24,13 +25,16 @@ export function ExperienceTimeline({
 
   return (
     <section id="experience" className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
-      <div className="mb-8">
+      <div className="mb-8 space-y-1">
         <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
           {companies.length} Seasons
         </p>
-        <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-          My Journey
-        </h2>
+        <WaterFlowText
+          as="h2"
+          text="My Journey"
+          accentVariant="blue-purple"
+          className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+        />
       </div>
 
       {/* Video 1 Horizontal Season Tabs */}

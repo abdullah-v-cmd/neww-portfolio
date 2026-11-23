@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Mail, Github, Linkedin, Send, Paperclip, MessageSquare, Search, CheckCircle2, FileCheck2 } from 'lucide-react';
 import { ProfileSettings } from '../types/portfolio';
+import { WaterFlowText } from './MotionReveal';
 import { parseJsonSafe } from '../utils/safeFetch';
 
 interface ContactSectionProps {
@@ -121,13 +122,16 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
   return (
     <section id="contact" className="border-t border-zinc-900 bg-[#080A0E]">
       <div className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
-        <div className="mb-10">
+        <div className="mb-10 space-y-2">
           <p className="text-xs font-medium tracking-[0.2em] text-red-500 uppercase">
             Recruiter &amp; Collaboration Portal
           </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Start a Conversation
-          </h2>
+          <WaterFlowText
+            as="h2"
+            text="Start a Conversation"
+            accentVariant="cinema"
+            className="mt-2 font-display text-3xl font-bold tracking-tight uppercase sm:text-4xl"
+          />
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
             Send a direct inquiry, attach a role specification, or track an existing two-way conversation thread.
           </p>

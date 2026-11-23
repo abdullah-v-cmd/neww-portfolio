@@ -68,7 +68,7 @@ export function CinematicIntro({
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Brand splash timeline — gentle, deliberate, GPU-composited easing (~2.2s total)
+  // Brand splash timeline — deliberate, cinematic GSAP reveal
   useEffect(() => {
     if (!showIntro && !showProfileSelector) {
       onComplete();

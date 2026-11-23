@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CertificateItem, EducationEntry } from '../types/portfolio';
+import { WaterFlowText } from './MotionReveal';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -173,12 +174,17 @@ export function CredentialsSection({ education, certificates }: CredentialsSecti
       <div className="mx-auto max-w-[1360px] px-6 py-20 lg:px-10">
         {/* Education */}
         <div className="mb-16">
-          <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
-            Academic Foundation
-          </p>
-          <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-            Education
-          </h2>
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
+              Academic Foundation
+            </p>
+            <WaterFlowText
+              as="h2"
+              text="Education"
+              accentVariant="cyan-blue"
+              className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+            />
+          </div>
 
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
             {education.map((edu) => (
@@ -211,13 +217,16 @@ export function CredentialsSection({ education, certificates }: CredentialsSecti
         {/* Certificates */}
         <div>
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
+            <div className="space-y-1">
               <p className="text-[11px] font-semibold tracking-[0.26em] text-[#e50914] uppercase">
                 Top Moments · Certified
               </p>
-              <h2 className="mt-1 font-display text-4xl font-bold tracking-wide text-white uppercase sm:text-5xl">
-                Verified Credentials
-              </h2>
+              <WaterFlowText
+                as="h2"
+                text="Verified Credentials"
+                accentVariant="blue-purple"
+                className="mt-1 font-display text-4xl font-bold tracking-wide uppercase sm:text-5xl"
+              />
             </div>
             <p className="max-w-md text-xs text-slate-400">
               Authentic Coursera and DeepLearning.AI certificates with full-screen document preview and official verification links.

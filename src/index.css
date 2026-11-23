@@ -90,6 +90,18 @@
   }
 }
 
+@keyframes waterFlowSheen {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .animate-kenburns {
   animation: kenburnsDrift 10s ease-out forwards;
   will-change: transform;
@@ -105,6 +117,91 @@
   will-change: transform, opacity;
 }
 
+.water-text-flow,
+.water-ink-cyan-blue {
+  background-image: linear-gradient(
+    112deg,
+    #f8fafc 0%,
+    #e0f2fe 22%,
+    #38bdf8 40%,
+    #60a5fa 52%,
+    #a5b4fc 64%,
+    #f8fafc 82%,
+    #cbd5e1 100%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: waterFlowSheen var(--water-sheen-duration, 7.2s) ease-in-out infinite;
+}
+
+.water-ink-blue-purple {
+  background-image: linear-gradient(
+    112deg,
+    #f8fafc 0%,
+    #dbeafe 22%,
+    #60a5fa 40%,
+    #818cf8 54%,
+    #c084fc 68%,
+    #f8fafc 84%,
+    #e2e8f0 100%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: waterFlowSheen var(--water-sheen-duration, 7.2s) ease-in-out infinite;
+}
+
+.water-ink-cinema {
+  background-image: linear-gradient(
+    112deg,
+    #ffffff 0%,
+    #bae6fd 24%,
+    #38bdf8 42%,
+    #a855f7 58%,
+    #f8fafc 76%,
+    #e2e8f0 100%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: waterFlowSheen var(--water-sheen-duration, 7.2s) ease-in-out infinite;
+}
+
+.water-caustic-bar {
+  background-image: linear-gradient(
+    90deg,
+    rgba(56, 189, 248, 0.95) 0%,
+    rgba(96, 165, 250, 0.78) 45%,
+    rgba(168, 85, 247, 0.55) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.water-reveal-shell {
+  clip-path: inset(0 0 100% 0);
+  transform: translate3d(0, 26px, 0) scale(0.985);
+  filter: blur(6px);
+  opacity: 0;
+  transition:
+    clip-path 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.65s ease-out;
+  will-change: clip-path, transform, filter, opacity;
+}
+
+.water-reveal-shell.is-revealed {
+  clip-path: inset(-8% 0 -14% 0);
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0px);
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -116,8 +213,26 @@
   }
   .animate-kenburns,
   .animate-light-sweep,
-  .animate-scroll-chevron {
+  .animate-scroll-chevron,
+  .water-text-flow,
+  .water-ink-cyan-blue,
+  .water-ink-blue-purple,
+  .water-ink-cinema {
     animation: none !important;
     transform: none !important;
   }
+  .water-text-flow,
+  .water-ink-cyan-blue,
+  .water-ink-blue-purple,
+  .water-ink-cinema {
+    background-image: none;
+    color: #f8fafc;
+  }
+  .water-reveal-shell {
+    clip-path: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
 }
+
