@@ -140,7 +140,7 @@ export function SkillsUniverse({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search skills (e.g. FastAPI, RAG)..."
+                  placeholder="Search skills (e.g. LangGraph, FastAPI, PyTorch)..."
                   className="h-9 w-60 rounded-lg border border-zinc-800 bg-[#0D0F14] pl-8 pr-3 text-xs text-white placeholder:text-slate-500 focus:border-[#e50914] focus:outline-none"
                 />
               </div>
@@ -153,7 +153,7 @@ export function SkillsUniverse({
                 <option value="All">All Statuses</option>
                 <option value="Used in Projects">Used in Projects</option>
                 <option value="Professional Experience">Professional Experience</option>
-                <option value="Learning / Familiar">Learning / Familiar</option>
+                <option value="Verified Stack">Verified Stack</option>
               </select>
             </div>
           </WaterCardReveal>

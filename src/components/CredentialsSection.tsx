@@ -9,8 +9,10 @@ import {
   ZoomIn,
   ZoomOut,
   FileText,
+  Loader2,
 } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { CertificateItem, EducationEntry } from '../types/portfolio';
 import {
   WaterCardReveal,
@@ -18,46 +20,147 @@ import {
   useWaterScrollWave,
 } from './MotionReveal';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// Polyfill Promise.withResolvers for browsers older than Chrome 119 / Safari 17.4
+if (typeof (Promise as any).withResolvers !== 'function') {
+  (Promise as any).withResolvers = function withResolvers<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+}
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface CredentialsSectionProps {
   education: EducationEntry[];
   certificates: CertificateItem[];
 }
 
+function hasPdfSignature(bytes: Uint8Array): boolean {
+  const limit = Math.min(bytes.length, 1024);
+  const header = new TextDecoder('ascii').decode(bytes.subarray(0, limit));
+  return header.includes('%PDF-');
+}
+
 function PdfCanvasViewer({ fileUrl, title }: { fileUrl: string; title: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.25);
-  const [loading, setLoading] = useState(true);
-  const [renderError, setRenderError] = useState('');
+  const [loadingDoc, setLoadingDoc] = useState(true);
+  const [renderingPages, setRenderingPages] = useState(false);
+  const [fallbackMode, setFallbackMode] = useState<'none' | 'native'>('none');
 
+  // Effect 1: Fetch PDF bytes once per fileUrl (sends same-origin cookies cleanly, skips worker Range/CORS failures)
   useEffect(() => {
     let cancelled = false;
-    let activeTask: any = null;
+    const controller = new AbortController();
+    let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
+    let loadedDoc: pdfjsLib.PDFDocumentProxy | null = null;
 
-    async function loadAndRender() {
-      setLoading(true);
-      setRenderError('');
+    setPdfDoc(null);
+    setNumPages(0);
+    setLoadingDoc(true);
+    setFallbackMode('none');
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
+
+    async function loadDocument() {
       try {
-        const loadingTask = pdfjsLib.getDocument({ url: fileUrl });
-        activeTask = loadingTask;
-        const pdf = await loadingTask.promise;
-        if (cancelled) return;
-        setNumPages(pdf.numPages);
+        const isSameOrigin =
+          fileUrl.startsWith('/') ||
+          (typeof window !== 'undefined' && fileUrl.startsWith(window.location.origin));
 
-        const host = containerRef.current;
-        if (!host) return;
-        host.innerHTML = '';
+        const response = await fetch(fileUrl, {
+          credentials: isSameOrigin ? 'same-origin' : 'omit',
+          mode: isSameOrigin ? 'same-origin' : 'cors',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const buffer = await response.arrayBuffer();
+        if (cancelled) return;
+
+        const bytes = new Uint8Array(buffer);
+        if (!hasPdfSignature(bytes)) {
+          throw new Error('Response is not a valid PDF document.');
+        }
+
+        loadingTask = pdfjsLib.getDocument({
+          data: bytes,
+          disableRange: true,
+          disableStream: true,
+        });
+
+        const doc = await loadingTask.promise;
+        if (cancelled) {
+          await loadingTask.destroy().catch(() => undefined);
+          return;
+        }
+
+        loadedDoc = doc;
+        setNumPages(doc.numPages);
+        setPdfDoc(doc);
+      } catch (err: any) {
+        if (!cancelled && err?.name !== 'AbortError') {
+          setFallbackMode('native');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingDoc(false);
+        }
+      }
+    }
+
+    loadDocument();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      try {
+        loadedDoc?.cleanup?.();
+      } catch {
+        // Ignore cleanup errors
+      }
+      try {
+        loadingTask?.destroy?.();
+      } catch {
+        // Ignore cleanup errors
+      }
+    };
+  }, [fileUrl]);
+
+  // Effect 2: Render pages cleanly into off-DOM fragment without re-fetching PDF on zoom
+  useEffect(() => {
+    if (!pdfDoc || fallbackMode !== 'none') return;
+
+    let cancelled = false;
+    const renderTasks: Array<{ cancel?: () => void }> = [];
+
+    async function renderPages() {
+      setRenderingPages(true);
+      try {
+        let host = containerRef.current;
+        if (host && host.clientWidth < 50) {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          host = containerRef.current;
+        }
+        if (cancelled || !host) return;
 
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const containerWidth = Math.max(host.clientWidth - 32, 320);
+        const containerWidth = Math.max((host.clientWidth || 720) - 32, 320);
+        const frag = document.createDocumentFragment();
 
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
+        for (let pageNum = 1; pageNum <= pdfDoc!.numPages; pageNum++) {
+          const page = await pdfDoc!.getPage(pageNum);
           if (cancelled) return;
 
           const baseViewport = page.getViewport({ scale: 1 });
@@ -69,35 +172,48 @@ function PdfCanvasViewer({ fileUrl, title }: { fileUrl: string; title: string })
           canvas.height = Math.floor(viewport.height * dpr);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
-          canvas.className = 'mx-auto rounded-lg border border-zinc-800 bg-white shadow-2xl';
+          canvas.className = 'mx-auto block rounded-lg border border-zinc-800 bg-white shadow-2xl';
           canvas.setAttribute('aria-label', `${title} — Page ${pageNum}`);
 
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            host.appendChild(canvas);
-            await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+            const task = page.render({ canvasContext: ctx, viewport, canvas } as any);
+            renderTasks.push(task);
+            await task.promise;
           }
+
+          if (cancelled) return;
+          frag.appendChild(canvas);
+        }
+
+        if (!cancelled && containerRef.current) {
+          containerRef.current.replaceChildren(frag);
         }
       } catch (err: any) {
-        if (!cancelled) {
-          setRenderError(err?.message || 'Unable to render PDF pages inline.');
+        if (!cancelled && err?.name !== 'RenderingCancelledException') {
+          setFallbackMode('native');
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setRenderingPages(false);
+        }
       }
     }
 
-    loadAndRender();
+    renderPages();
+
     return () => {
       cancelled = true;
-      try {
-        activeTask?.destroy?.();
-      } catch {
-        // Ignore cleanup errors
+      for (const task of renderTasks) {
+        try {
+          task.cancel?.();
+        } catch {
+          // Ignore cancel errors
+        }
       }
     };
-  }, [fileUrl, scale, title]);
+  }, [pdfDoc, scale, title, fallbackMode]);
 
   return (
     <div className="flex h-full flex-col">
@@ -105,57 +221,84 @@ function PdfCanvasViewer({ fileUrl, title }: { fileUrl: string; title: string })
         <div className="flex items-center gap-2 font-mono">
           <FileText className="h-3.5 w-3.5 text-[#e50914]" />
           <span>{numPages > 0 ? `${numPages} Page${numPages > 1 ? 's' : ''}` : 'PDF Document'}</span>
+          {renderingPages && !loadingDoc ? (
+            <Loader2 className="h-3 w-3 animate-spin text-sky-400" aria-label="Updating zoom" />
+          ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setScale((s) => Math.max(0.75, Number((s - 0.2).toFixed(2))))}
-            aria-label="Zoom out"
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-700 hover:border-zinc-500"
+        {fallbackMode === 'none' ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.max(0.75, Number((s - 0.2).toFixed(2))))}
+              aria-label="Zoom out"
+              className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-700 hover:border-zinc-500"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <span className="w-12 text-center font-mono text-[11px]">{Math.round((scale / 1.25) * 100)}%</span>
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.min(2.25, Number((s + 0.2).toFixed(2))))}
+              aria-label="Zoom in"
+              className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-700 hover:border-zinc-500"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded border border-zinc-700 px-2.5 py-1 text-[11px] font-medium text-sky-300 hover:border-sky-400"
           >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-12 text-center font-mono text-[11px]">{Math.round((scale / 1.25) * 100)}%</span>
-          <button
-            type="button"
-            onClick={() => setScale((s) => Math.min(2.25, Number((s + 0.2).toFixed(2))))}
-            aria-label="Zoom in"
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-700 hover:border-zinc-500"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
-        </div>
+            <ExternalLink className="h-3 w-3" />
+            <span>Open PDF Directly</span>
+          </a>
+        )}
       </div>
 
       <div className="relative flex-1 overflow-y-auto bg-zinc-950 p-4">
-        {loading ? (
-          <div className="flex h-48 items-center justify-center text-xs text-slate-400">
-            Rendering certificate document...
+        {loadingDoc ? (
+          <div className="flex h-48 items-center justify-center gap-2 text-xs text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin text-sky-400" />
+            <span>Loading certificate document...</span>
           </div>
         ) : null}
 
-        {renderError ? (
-          <div className="mx-auto flex max-w-xl flex-col items-center justify-center gap-4 rounded-xl border border-zinc-800 bg-[#0D0F14] p-8 text-center">
-            <p className="text-sm text-slate-300">
-              Inline canvas preview encountered an issue ({renderError}). Use the embedded viewer or download the certificate PDF directly.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <a
-                href={fileUrl}
-                download
-                className="inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-xs font-semibold text-zinc-950 hover:bg-slate-200"
-              >
-                <Download className="h-3.5 w-3.5" />
-                <span>Download Certificate PDF</span>
-              </a>
+        {fallbackMode === 'native' ? (
+          <div className="flex h-full min-h-[480px] flex-col gap-3">
+            <iframe
+              src={fileUrl}
+              title={title}
+              className="h-full min-h-[480px] w-full flex-1 rounded-lg border border-zinc-800 bg-zinc-900"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-800/80 bg-[#0D0F14] px-4 py-2.5 text-xs text-slate-300">
+              <span>Showing native browser PDF viewer.</span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>Open in New Tab</span>
+                </a>
+                <a
+                  href={fileUrl}
+                  download
+                  className="inline-flex items-center gap-1 font-semibold text-white hover:text-red-400"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Download</span>
+                </a>
+              </div>
             </div>
-            <object data={fileUrl} type="application/pdf" className="h-[460px] w-full rounded border border-zinc-800">
-              <p className="p-4 text-xs text-slate-400">PDF preview unavailable in this frame.</p>
-            </object>
           </div>
         ) : null}
 
-        <div ref={containerRef} className="space-y-4" />
+        <div ref={containerRef} className={fallbackMode === 'native' ? 'hidden' : 'space-y-4'} />
       </div>
     </div>
   );

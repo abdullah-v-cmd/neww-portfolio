@@ -632,22 +632,15 @@ function seedInitialData(): void {
       'Undergraduate studies in Computer Science.'
     );
 
-    // 5. Skill Categories & Skills
-    const categories = [
-      { name: 'AI & Machine Learning', slug: 'ai-ml', skills: ['Python', 'Machine Learning', 'Deep Learning', 'ANN', 'RNN', 'DNN', 'CNN', 'Data Preprocessing', 'Feature Engineering', 'Model Training'] },
-      { name: 'Generative AI & LLM Engineering', slug: 'genai-llm', skills: ['Large Language Models', 'RAG', 'Semantic Search', 'Embeddings', 'Vector Databases', 'AI Agents', 'Prompt Engineering', 'Document Retrieval', 'Hugging Face', 'Groq API'] },
-      { name: 'Backend Engineering', slug: 'backend', skills: ['FastAPI', 'Node.js', 'Express.js', 'REST APIs', 'JWT', 'SQLAlchemy', 'WebSockets', 'Authentication', 'API Integration'] },
-      { name: 'Frontend Development', slug: 'frontend', skills: ['JavaScript', 'TypeScript', 'React.js', 'Next.js', 'HTML', 'CSS', 'Tailwind CSS', 'Responsive Design'] },
-      { name: 'Databases', slug: 'databases', skills: ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis'] },
-      { name: 'DevOps & Infrastructure', slug: 'devops', skills: ['Docker', 'Git', 'GitHub', 'CI/CD', 'AWS', 'Linux'] },
-      { name: 'Computer Vision', slug: 'cv', skills: ['YOLOv8', 'OpenCV', 'Image Processing', 'Computer Vision'] },
-    ];
+    // 5. High-Demand Market Skill Categories & Skills
     const insertCat = db.prepare('INSERT INTO skill_categories (name, slug, sort_order) VALUES (?, ?, ?)');
-    const insertSkill = db.prepare('INSERT INTO skills (category_id, name, proficiency_label, is_published, sort_order) VALUES (?, ?, ?, 1, ?)');
-    categories.forEach((cat, idx) => {
+    const insertSkill = db.prepare(
+      'INSERT INTO skills (category_id, name, proficiency_label, is_published, is_verified, sort_order) VALUES (?, ?, ?, 1, 1, ?)'
+    );
+    HIGH_DEMAND_SKILL_CATEGORIES.forEach((cat, idx) => {
       const catId = insertCat.run(cat.name, cat.slug, idx + 1).lastInsertRowid;
       cat.skills.forEach((s, sIdx) => {
-        insertSkill.run(catId, s, '', sIdx + 1);
+        insertSkill.run(catId, s, 'Verified', sIdx + 1);
       });
     });
 
@@ -1222,46 +1215,305 @@ function seedInitialData(): void {
   })();
 }
 
+const HIGH_DEMAND_SKILL_CATEGORIES: Array<{ name: string; slug: string; skills: string[] }> = [
+  {
+    name: 'Generative AI & LLM Engineering',
+    slug: 'genai-llm',
+    skills: [
+      'LangGraph',
+      'LangChain',
+      'RAG',
+      'HyDE Retrieval',
+      'Multi-Agent Orchestration',
+      'FAISS',
+      'pgvector',
+      'Sentence Transformers',
+      'Vector Databases',
+      'Groq API',
+      'Multi-Provider LLM Routing',
+      'Multi-Engine OCR',
+    ],
+  },
+  {
+    name: 'AI, Deep Learning & MLOps',
+    slug: 'ai-ml',
+    skills: [
+      'PyTorch',
+      'TensorFlow',
+      'scikit-learn',
+      'Hugging Face',
+      'MLflow',
+      'DVC',
+      'Machine Learning',
+      'Deep Learning',
+      'Feature Engineering',
+      'Model Serving & Evaluation',
+    ],
+  },
+  {
+    name: 'Computer Vision & Edge AI',
+    slug: 'cv',
+    skills: [
+      'YOLOv8',
+      'OpenCV',
+      'Computer Vision',
+      'RTSP Stream Pipelines',
+      'IDM-VTON',
+      'Edge AI Inference',
+    ],
+  },
+  {
+    name: 'Backend & Distributed APIs',
+    slug: 'backend',
+    skills: [
+      'FastAPI',
+      'Python',
+      'Node.js',
+      'Express.js',
+      'Hono',
+      'Celery',
+      'WebSockets & SSE',
+      'SQLAlchemy',
+      'Alembic',
+      'JWT & RBAC Security',
+      'REST APIs',
+    ],
+  },
+  {
+    name: 'Frontend & Interactive Web',
+    slug: 'frontend',
+    skills: ['TypeScript', 'Next.js', 'React.js', 'Tailwind CSS', 'Three.js'],
+  },
+  {
+    name: 'Databases & Caching',
+    slug: 'databases',
+    skills: ['PostgreSQL', 'Redis', 'SQLite', 'MongoDB', 'MySQL'],
+  },
+  {
+    name: 'Cloud, Docker & DevOps',
+    slug: 'devops',
+    skills: ['Docker', 'Docker Compose', 'CI/CD', 'Cloudflare Workers', 'Vercel', 'AWS', 'Linux'],
+  },
+];
+
+const SKILL_SEARCH_ALIASES: Record<string, string[]> = {
+  'HyDE Retrieval': ['hyde'],
+  'Multi-Agent Orchestration': ['multi-agent', 'langgraph', '9 specialized'],
+  'Multi-Engine OCR': ['ocr', 'pymupdf', 'easyocr', 'pytesseract', 'pdfplumber'],
+  'Multi-Provider LLM Routing': ['multi-provider', 'llm routing', 'ai gateway'],
+  'Sentence Transformers': ['sentence-transformers', 'all-minilm', 'sentence embeddings'],
+  'Vector Databases': ['vector', 'faiss', 'pgvector'],
+  'Hugging Face': ['hugging face', 'huggingface', 'idm-vton', 'flux.1'],
+  'Model Serving & Evaluation': ['model training', 'serving', 'evaluation', 'mlops'],
+  'RTSP Stream Pipelines': ['rtsp', 'watchdog'],
+  'Edge AI Inference': ['edge_ai', 'edge inference', 'yolov8'],
+  'WebSockets & SSE': ['websocket', 'websockets', 'streaming'],
+  Alembic: ['alembic', 'migrations'],
+  'JWT & RBAC Security': ['jwt', 'rbac', 'role-based', 'authentication'],
+  'Docker Compose': ['docker compose', 'docker'],
+  'Cloudflare Workers': ['cloudflare'],
+};
+
 const SKILL_PROFILES: Record<string, { description: string; whatItDoes: string; howUsed: string }> = {
+  LangGraph: {
+    description: 'Stateful multi-actor agent orchestration graph library for complex LLM workflows.',
+    whatItDoes: 'Coordinates cyclical tool-calling, shared memory state, and specialized sub-agent handoffs.',
+    howUsed: 'Orchestrates 9 specialized research & synthesis agents inside OmniSynth.',
+  },
+  LangChain: {
+    description: 'Composable framework for document loaders, splitters, retrievers, and LLM chains.',
+    whatItDoes: 'Connects unstructured enterprise files with vector indices and grounded prompt templates.',
+    howUsed: 'Powers document ingestion and vector retrieval flows in Production RAG Document Intelligence.',
+  },
+  RAG: {
+    description: 'Retrieval-Augmented Generation grounding LLM outputs in verified external documents.',
+    whatItDoes: 'Combines document chunking, dense embeddings, similarity search, and citation-backed synthesis.',
+    howUsed: 'Built production RAG pipelines at Developers Hub and engineered OmniSynth, Scalable RAG, and 01-Vanilla-RAG.',
+  },
+  'HyDE Retrieval': {
+    description: 'Hypothetical Document Embeddings technique improving dense semantic search recall.',
+    whatItDoes: 'Generates a hypothetical answer embedding to bridge query-to-document vocabulary gaps.',
+    howUsed: 'Integrated over FAISS inside OmniSynth for higher-accuracy research retrieval.',
+  },
+  'Multi-Agent Orchestration': {
+    description: 'Architecture coordinating multiple specialized AI agents with distinct reasoning roles.',
+    whatItDoes: 'Splits complex research, validation, OCR, and synthesis tasks across collaborative agents.',
+    howUsed: 'Engineered 9-agent LangGraph research pipelines in OmniSynth.',
+  },
+  FAISS: {
+    description: 'Facebook AI Similarity Search high-speed dense vector indexing library.',
+    whatItDoes: 'Performs low-latency nearest-neighbor similarity search across large embedding collections.',
+    howUsed: 'Primary vector retrieval engine in OmniSynth and Production RAG Document Intelligence.',
+  },
+  pgvector: {
+    description: 'PostgreSQL vector similarity extension unifying relational data and embeddings.',
+    whatItDoes: 'Enables transactional ACID queries alongside cosine/L2 vector indexing in one database.',
+    howUsed: 'Backs multi-user semantic document indexing in Scalable RAG Platform.',
+  },
+  'Sentence Transformers': {
+    description: 'Dense bi-encoder transformer models (such as all-MiniLM-L6-v2) for semantic embeddings.',
+    whatItDoes: 'Encodes text chunks and queries into dense vector space for semantic similarity.',
+    howUsed: 'Generates local document and query embeddings in OmniSynth and 01-Vanilla-RAG.',
+  },
+  'Vector Databases': {
+    description: 'Specialized storage and indexing engines for high-dimensional neural embeddings.',
+    whatItDoes: 'Persists, indexes, and queries millions of semantic document chunks at millisecond latency.',
+    howUsed: 'Architected across FAISS and PostgreSQL pgvector deployments in RAG systems.',
+  },
+  'Groq API': {
+    description: 'Ultra-low-latency LPU inference API for Llama-3.3-70B, Llama-3-70B, and Mixtral models.',
+    whatItDoes: 'Executes fast chat completions and multi-agent reasoning steps in milliseconds.',
+    howUsed: 'Powers OmniSynth agents, Muscle Bros AI support assistant, and live inference in this portfolio.',
+  },
+  'Multi-Provider LLM Routing': {
+    description: 'Resilient AI gateway pattern routing requests across Gemini, Groq, and OpenAI-compatible APIs.',
+    whatItDoes: 'Handles automatic provider failover, rate limiting, and structured output enforcement.',
+    howUsed: 'Built into Scaleable AI API Gateway (Hono) and this portfolio’s Abdullah AI backend.',
+  },
+  'Multi-Engine OCR': {
+    description: 'Layered document extraction combining PyMuPDF, EasyOCR, pytesseract, and pdfplumber.',
+    whatItDoes: 'Extracts clean text from native PDFs, scanned images, and complex multi-column tables.',
+    howUsed: 'Ingests heterogeneous research documents inside OmniSynth.',
+  },
+  PyTorch: {
+    description: 'Industry-standard deep learning framework with dynamic computation graphs.',
+    whatItDoes: 'Trains custom neural networks, computer vision architectures, and generative GAN models.',
+    howUsed: 'Used across AI-ML-Engineering-Lab neural implementations and Multi-GAN Multimodal AI.',
+  },
+  TensorFlow: {
+    description: 'End-to-end open-source deep learning platform for training and serving models.',
+    whatItDoes: 'Builds, evaluates, and exports neural sequence and vision pipelines.',
+    howUsed: 'Applied in deep learning model implementations within AI-ML-Engineering-Lab.',
+  },
+  'scikit-learn': {
+    description: 'Production Python library for classical machine learning and preprocessing pipelines.',
+    whatItDoes: 'Implements regression, classification, clustering, cross-validation, and feature transformers.',
+    howUsed: 'Core ML toolkit in AI-ML-Engineering-Lab, MLOps Engineering Lab, and ML Pipeline workbench.',
+  },
+  'Hugging Face': {
+    description: 'Open-weights AI ecosystem for transformers, diffusion models, and inference endpoints.',
+    whatItDoes: 'Supplies pretrained NLP, multimodal image (FLUX/SDXL), TTS, and virtual try-on models.',
+    howUsed: 'Powers LegalAI, AI Studio Multimodal (FLUX.1-schnell/SDXL), and ZaraFit IDM-VTON.',
+  },
+  MLflow: {
+    description: 'Open-source MLOps platform for experiment tracking, metrics, and model registry.',
+    whatItDoes: 'Logs hyperparameters, evaluation scores, and reproducible model artifacts per run.',
+    howUsed: 'Tracks training runs and model versions in MLOps Engineering Lab.',
+  },
+  DVC: {
+    description: 'Data Version Control for reproducible ML datasets and multi-stage pipelines.',
+    whatItDoes: 'Versions large training datasets and pipeline DAGs cleanly alongside Git.',
+    howUsed: 'Manages reproducible dataset lineage and pipeline stages in MLOps Engineering Lab.',
+  },
+  'Machine Learning': {
+    description: 'Applied supervised and unsupervised statistical learning systems.',
+    whatItDoes: 'Solves classification, regression, clustering, and forecasting problems on structured data.',
+    howUsed: 'Trained and deployed across DeepVision.ai, AI-ML-60-Models Lab, and ML Pipeline workbench.',
+  },
+  'Deep Learning': {
+    description: 'Multi-layer neural architectures including CNNs, RNNs, transformers, and GANs.',
+    whatItDoes: 'Learns hierarchical representations from images, sequences, and high-dimensional data.',
+    howUsed: 'Built and trained neural architectures at DeepVision.ai, AI-ML-Engineering-Lab, and Multi-GAN AI.',
+  },
+  'Feature Engineering': {
+    description: 'Domain-driven transformation of raw signals into predictive model features.',
+    whatItDoes: 'Improves model generalization through encoding, normalization, and dimensionality reduction.',
+    howUsed: 'Applied at DeepVision.ai and in the End-to-End ML Pipeline workbench.',
+  },
+  'Model Serving & Evaluation': {
+    description: 'Productionizing trained ML models behind typed inference APIs with metric validation.',
+    whatItDoes: 'Verifies accuracy/drift benchmarks and serves predictions reliably over REST endpoints.',
+    howUsed: 'Engineered in MLOps Engineering Lab and DeepVision.ai workflows.',
+  },
+  YOLOv8: {
+    description: 'Real-time object detection architecture by Ultralytics.',
+    whatItDoes: 'Detects vehicles, traffic participants, and rule violations across live video frames.',
+    howUsed: 'Pre-baked into the isolated edge_ai inference container in V-Watch 24/7 CCTV surveillance.',
+  },
+  OpenCV: {
+    description: 'Open-source computer vision and real-time video frame processing library.',
+    whatItDoes: 'Handles RTSP frame capture, mask preprocessing, spatial transforms, and visual overlays.',
+    howUsed: 'Powers V-Watch frame capture/relay recovery and ZaraFit garment preprocessing.',
+  },
+  'Computer Vision': {
+    description: 'Automated visual understanding across real-time camera feeds and image pipelines.',
+    whatItDoes: 'Extracts detections, tracking metadata, and segmented masks from visual inputs.',
+    howUsed: 'Core domain of V-Watch traffic surveillance, ZaraFit try-on, and AI-ML vision labs.',
+  },
+  'RTSP Stream Pipelines': {
+    description: 'Continuous live IP camera stream ingestion with automated watchdog recovery.',
+    whatItDoes: 'Maintains 24/7 CCTV video streams and recovers automatically from network/frame drops.',
+    howUsed: 'Architected the self-healing RTSP relay & watchdog service in V-Watch.',
+  },
+  'IDM-VTON': {
+    description: 'Diffusion-based virtual garment try-on architecture conditioned on pose and clothing.',
+    whatItDoes: 'Synthesizes realistic virtual try-on previews from user photos and garment images.',
+    howUsed: 'Powers the ZaraFit AI Virtual Try-On Bot alongside rembg background segmentation.',
+  },
+  'Edge AI Inference': {
+    description: 'Containerized local/edge neural inference optimized for continuous low-latency execution.',
+    whatItDoes: 'Runs vision models close to camera feeds with strict container isolation and failover.',
+    howUsed: 'Designed the isolated edge_ai YOLOv8 service container in V-Watch.',
+  },
   Python: {
     description: 'Primary engineering language for AI pipelines, computer vision workers, and FastAPI backends.',
-    whatItDoes: 'Powers data preprocessing, deep learning training, async REST/WebSocket APIs, and automation scripts.',
-    howUsed: 'Used across DeepVision.ai, Developers Hub, OmniSynth, V-Watch, 01-Vanilla-RAG, and 60+ ML models.',
+    whatItDoes: 'Powers ML/DL training, async REST/WebSocket APIs, OCR, and automation systems.',
+    howUsed: 'Used across DeepVision.ai, Developers Hub, OmniSynth, V-Watch, Scalable RAG, and 60+ ML models.',
   },
   FastAPI: {
     description: 'High-performance asynchronous Python web framework with automatic OpenAPI schemas.',
     whatItDoes: 'Serves typed REST APIs, JWT auth, streaming responses, and WebSocket real-time workspaces.',
     howUsed: 'Core backend framework in OmniSynth, V-Watch, Scalable RAG, LegalAI, LuxeWatch, and Muscle Bros.',
   },
-  RAG: {
-    description: 'Retrieval-Augmented Generation grounding LLM outputs in verified external documents.',
-    whatItDoes: 'Combines document chunking, vector embeddings, similarity search, and citation-backed synthesis.',
-    howUsed: 'Built production RAG pipelines at Developers Hub and engineered OmniSynth (HyDE+FAISS), pgvector RAG, and 01-Vanilla-RAG.',
+  'Node.js': {
+    description: 'Server-side JavaScript/TypeScript runtime for scalable APIs and real-time backends.',
+    whatItDoes: 'Runs Express/Hono services, auth middleware, background webhooks, and tooling.',
+    howUsed: 'Powers LMS-COMPLETE, Scaleable AI API Gateway, and this portfolio’s Express backend.',
   },
-  'Large Language Models': {
-    description: 'Foundation language models orchestrated for reasoning, drafting, synthesis, and tool execution.',
-    whatItDoes: 'Generates grounded technical answers, structured summaries, and multi-agent plans from retrieved context.',
-    howUsed: 'Integrated Groq Llama-3-70B/3.3-70B, Mixtral-8x7B, Gemini, and Hugging Face models across portfolio platforms.',
+  'Express.js': {
+    description: 'Minimalist Node.js HTTP server framework for structured REST APIs and security middleware.',
+    whatItDoes: 'Handles routing, rate limiting, file uploads, Helmet security, and JSON APIs.',
+    howUsed: 'Core server framework powering this portfolio’s public/admin API and CMS.',
   },
-  Docker: {
-    description: 'Containerization platform for packaging reproducible multi-service applications.',
-    whatItDoes: 'Isolates API servers, databases, Redis brokers, ML inference workers, and health watchdogs into compose networks.',
-    howUsed: 'Containerized RAG services at Developers Hub and architected multi-container Docker Compose stacks in V-Watch and OmniSynth.',
+  Hono: {
+    description: 'Ultrafast Web-Standards TypeScript router built for Cloudflare Workers and edge runtimes.',
+    whatItDoes: 'Routes low-latency edge API requests with zero cold-start bloat.',
+    howUsed: 'Powers the unified multi-model AI gateway in Scaleable AI API System.',
   },
-  PostgreSQL: {
-    description: 'Relational database system with strong ACID guarantees and pgvector similarity extensions.',
-    whatItDoes: 'Stores relational application records alongside high-dimensional vector embeddings for semantic retrieval.',
-    howUsed: 'Primary datastore across OmniSynth, V-Watch, Scalable RAG (pgvector), LuxeWatch, and Muscle Bros.',
+  Celery: {
+    description: 'Distributed asynchronous task queue for heavy background Python workloads.',
+    whatItDoes: 'Offloads document chunking, OCR, and embedding generation from web request threads.',
+    howUsed: 'Processes asynchronous RAG indexing jobs backed by Redis in Scalable RAG Platform.',
   },
-  YOLOv8: {
-    description: 'Real-time object detection neural architecture by Ultralytics.',
-    whatItDoes: 'Detects vehicles, traffic participants, and rule violations across live RTSP and video frames.',
-    howUsed: 'Pre-baked into the isolated edge_ai inference container in V-Watch 24/7 CCTV surveillance.',
+  'WebSockets & SSE': {
+    description: 'Bidirectional and server-push streaming protocols for live AI and collaborative UX.',
+    whatItDoes: 'Streams LLM tokens incrementally and synchronizes multi-user workspace state.',
+    howUsed: 'Implemented WebSocket collaboration in OmniSynth and SSE token streaming in Abdullah AI.',
   },
-  OpenCV: {
-    description: 'Open-source computer vision and image processing library.',
-    whatItDoes: 'Handles video frame decoding, RTSP stream capture, mask preprocessing, and visual overlays.',
-    howUsed: 'Powers V-Watch frame capture/relay recovery and ZaraFit garment preprocessing.',
+  SQLAlchemy: {
+    description: 'Python SQL toolkit and Object-Relational Mapper for typed database workflows.',
+    whatItDoes: 'Models relational schemas, session transactions, and safe parameterized queries.',
+    howUsed: 'ORM layer in LegalAI Document Intelligence and LuxeWatch E-Commerce.',
+  },
+  Alembic: {
+    description: 'Database schema migration engine for SQLAlchemy and PostgreSQL.',
+    whatItDoes: 'Tracks versioned forward/rollback DDL migrations cleanly across environments.',
+    howUsed: 'Manages schema migrations in LuxeWatch E-Commerce and LegalAI.',
+  },
+  'JWT & RBAC Security': {
+    description: 'Stateless token authentication paired with strict role-based access control and TOTP MFA.',
+    whatItDoes: 'Protects multi-role endpoints, admin portals, and tenant resources against privilege escalation.',
+    howUsed: 'Implemented across LMS-COMPLETE, LuxeWatch, GymBro, LegalAI, and this portfolio’s Admin Portal.',
+  },
+  'REST APIs': {
+    description: 'Clean resource-oriented HTTP APIs with schema validation, versioning, and error contracts.',
+    whatItDoes: 'Connects frontend apps, mobile clients, AI workers, and third-party webhooks reliably.',
+    howUsed: 'Standard integration layer across all full-stack and AI backend services.',
+  },
+  TypeScript: {
+    description: 'Statically typed superset of JavaScript for reliable full-stack applications.',
+    whatItDoes: 'Prevents runtime schema bugs across edge gateways, React components, and Express APIs.',
+    howUsed: 'Core language for Scaleable AI API Gateway, LuxeWatch, LMS-COMPLETE, AI Studio, and this portfolio.',
   },
   'Next.js': {
     description: 'Full-stack React framework for server-rendered and modern interactive TypeScript applications.',
@@ -1271,37 +1523,117 @@ const SKILL_PROFILES: Record<string, { description: string; whatItDoes: string; 
   'React.js': {
     description: 'Declarative component library for building responsive web applications and admin portals.',
     whatItDoes: 'Manages interactive client state, real-time streaming chat, carousels, and dashboards.',
-    howUsed: 'Frontend layer for V-Watch, Scalable RAG Platform, LinkedIn Job Bot, and this portfolio CMS.',
+    howUsed: 'Frontend layer for V-Watch, Scalable RAG Platform, LinkedIn Job Bot, LMS-COMPLETE, and this portfolio.',
   },
-  TypeScript: {
-    description: 'Statically typed superset of JavaScript for reliable full-stack applications.',
-    whatItDoes: 'Prevents runtime schema bugs across API gateways, React components, and backend services.',
-    howUsed: 'Core language for Scaleable AI API Gateway, LuxeWatch, LMS-COMPLETE, and this portfolio platform.',
+  'Tailwind CSS': {
+    description: 'Utility-first CSS engine for rapid, consistent, responsive UI architecture.',
+    whatItDoes: 'Builds high-contrast dark interfaces, responsive grids, and accessible interactive states.',
+    howUsed: 'Styling engine across LuxeWatch, AI Studio, LMS-COMPLETE, and this portfolio.',
+  },
+  'Three.js': {
+    description: 'WebGL 3D graphics engine for hardware-accelerated interactive web scenes.',
+    whatItDoes: 'Renders spatial particle fields, interactive depth canvases, and real-time shaders.',
+    howUsed: 'Powers the interactive 3D hero background canvas in this portfolio platform.',
+  },
+  PostgreSQL: {
+    description: 'Enterprise relational database system with strong ACID guarantees and pgvector extensions.',
+    whatItDoes: 'Stores relational application records alongside high-dimensional vector embeddings.',
+    howUsed: 'Primary datastore across OmniSynth, V-Watch, Scalable RAG (pgvector), LuxeWatch, and Muscle Bros.',
   },
   Redis: {
     description: 'In-memory data structure store used for caching and distributed task queues.',
     whatItDoes: 'Accelerates API catalog reads and acts as message broker for asynchronous Celery workers.',
     howUsed: 'Backs async document ingestion in Scalable RAG and product caching in LuxeWatch & Muscle Bros.',
   },
-  'Groq API': {
-    description: 'Ultra-low-latency LPU inference API for open-weights LLMs like Llama-3.3-70B and Mixtral.',
-    whatItDoes: 'Executes fast chat completions and multi-agent reasoning steps in milliseconds.',
-    howUsed: 'Powers OmniSynth agents, Muscle Bros AI support assistant, and live inference in this portfolio.',
+  SQLite: {
+    description: 'High-speed embedded relational database with WAL mode and zero network overhead.',
+    whatItDoes: 'Serves transactional CMS state, MLflow tracking stores, and local RAG chunk indexes.',
+    howUsed: 'Drives MLOps Engineering Lab tracking and this portfolio’s WAL-mode database.',
   },
-  'Machine Learning': {
-    description: 'Applied supervised and unsupervised statistical learning algorithms.',
-    whatItDoes: 'Solves classification, regression, clustering, and forecasting problems on structured data.',
-    howUsed: 'Trained models across DeepVision.ai, AI-ML-60-Models Engineering Lab, and ML Pipeline workbench.',
+  MongoDB: {
+    description: 'Document-oriented NoSQL database for flexible JSON-like schemas.',
+    whatItDoes: 'Stores semi-structured application documents and rapid prototype collections.',
+    howUsed: 'Applied in full-stack document persistence workflows.',
   },
-  'Deep Learning': {
-    description: 'Multi-layer neural architectures including ANN, CNN, RNN, and DNN models.',
-    whatItDoes: 'Learns hierarchical representations from images, sequences, and high-dimensional datasets.',
-    howUsed: 'Built and trained ANN, RNN, DNN, and CNN architectures at DeepVision.ai and AI-ML-Engineering-Lab.',
+  MySQL: {
+    description: 'Widely deployed relational database engine for structured web applications.',
+    whatItDoes: 'Provides reliable relational tables, indexing, and transactional SQL storage.',
+    howUsed: 'Applied across relational web backend implementations.',
+  },
+  Docker: {
+    description: 'Containerization platform for packaging reproducible multi-service applications.',
+    whatItDoes: 'Isolates API servers, databases, Redis brokers, and ML workers into deterministic images.',
+    howUsed: 'Containerized RAG services at Developers Hub and packaged V-Watch, OmniSynth, LegalAI, and LMS-COMPLETE.',
+  },
+  'Docker Compose': {
+    description: 'Multi-container orchestration for running interconnected API, DB, queue, and AI services.',
+    whatItDoes: 'Defines shared networks, healthchecks, volumes, and dependency startup ordering.',
+    howUsed: 'Orchestrates multi-service stacks in V-Watch, Scalable RAG, OmniSynth, and LuxeWatch.',
+  },
+  'CI/CD': {
+    description: 'Automated build, lint, test, and deployment pipelines for continuous delivery.',
+    whatItDoes: 'Catches regressions early and automates artifact packaging and service rollouts.',
+    howUsed: 'Configured automated quality and deployment workflows in LegalAI, MLOps Lab, and Scaleable AI API.',
+  },
+  'Cloudflare Workers': {
+    description: 'Serverless edge compute platform running TypeScript close to global users.',
+    whatItDoes: 'Executes ultra-low-latency API gateways and static web workloads at the edge.',
+    howUsed: 'Deploys Scaleable AI API Gateway and the ML-PipeLine-End-to-End workbench.',
+  },
+  Vercel: {
+    description: 'Cloud platform optimized for Next.js and TypeScript full-stack web deployments.',
+    whatItDoes: 'Provides automated preview URLs, edge routing, and production frontend hosting.',
+    howUsed: 'Hosts the live public deployments of OmniSynth and EduSphere / LMS-COMPLETE.',
+  },
+  AWS: {
+    description: 'Cloud infrastructure platform for scalable compute, storage, and container hosting.',
+    whatItDoes: 'Supports production backend deployments, object storage, and cloud networking.',
+    howUsed: 'Applied in cloud deployment architecture and infrastructure workflows.',
+  },
+  Linux: {
+    description: 'Server operating system foundation for Docker hosts, GPU inference nodes, and networking.',
+    whatItDoes: 'Runs headless containers, process watchdogs, shell automation, and reverse proxies.',
+    howUsed: 'Production runtime environment for V-Watch surveillance containers and Docker Compose stacks.',
   },
 };
 
 function runPostSeedMigrations(): void {
-  // 0. Upgrade placeholder LinkedIn URL to verified profile link
+  // 0. Ensure migrations tracking table exists
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS db_migrations (
+      key TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // 0a. Replace basic initial skills with high-demand market skill set (one-time idempotent migration)
+  const hasHighDemandSkills = db
+    .prepare(`SELECT key FROM db_migrations WHERE key = 'high_demand_skills_v1'`)
+    .get();
+  if (!hasHighDemandSkills) {
+    db.transaction(() => {
+      db.prepare(`DELETE FROM skill_project_links`).run();
+      db.prepare(`DELETE FROM skill_experience_links`).run();
+      db.prepare(`DELETE FROM skills`).run();
+      db.prepare(`DELETE FROM skill_categories`).run();
+
+      const insertCat = db.prepare(`INSERT INTO skill_categories (name, slug, sort_order) VALUES (?, ?, ?)`);
+      const insertSkill = db.prepare(
+        `INSERT INTO skills (category_id, name, proficiency_label, is_published, is_verified, sort_order) VALUES (?, ?, 'Verified', 1, 1, ?)`
+      );
+      HIGH_DEMAND_SKILL_CATEGORIES.forEach((cat, idx) => {
+        const catId = insertCat.run(cat.name, cat.slug, idx + 1).lastInsertRowid;
+        cat.skills.forEach((skillName, sIdx) => {
+          insertSkill.run(catId, skillName, sIdx + 1);
+        });
+      });
+
+      db.prepare(`INSERT INTO db_migrations (key) VALUES ('high_demand_skills_v1')`).run();
+      db.prepare(`DELETE FROM knowledge_chunks`).run();
+    })();
+  }
+
+  // 0b. Upgrade placeholder LinkedIn URL to verified profile link
   const profLinkRow = db.prepare(`SELECT linkedin_url FROM profile_settings WHERE id = 1`).get() as
     | { linkedin_url?: string }
     | undefined;
@@ -1568,18 +1900,23 @@ function runPostSeedMigrations(): void {
 
   for (const s of allSkills) {
     const q = s.name.toLowerCase();
+    const searchTerms = [q, ...(SKILL_SEARCH_ALIASES[s.name] || [])];
     const matchedProjs = allProjects.filter((p) => {
       const techs = JSON.parse(p.technologies_json || '[]') as string[];
-      return (
-        techs.some((t) => t.toLowerCase() === q || t.toLowerCase().includes(q)) ||
-        `${p.overview} ${p.frontend_stack} ${p.backend_stack} ${p.database_stack} ${p.ai_models_stack}`.toLowerCase().includes(q)
+      const blob = `${p.overview} ${p.frontend_stack} ${p.backend_stack} ${p.database_stack} ${p.ai_models_stack}`.toLowerCase();
+      return searchTerms.some(
+        (term) =>
+          techs.some((t) => t.toLowerCase() === term || t.toLowerCase().includes(term)) ||
+          blob.includes(term)
       );
     });
     const matchedRoles = allRoles.filter((r) => {
       const rSkills = JSON.parse(r.skills_json || '[]') as string[];
-      return (
-        rSkills.some((rs) => rs.toLowerCase() === q || rs.toLowerCase().includes(q)) ||
-        `${r.description} ${r.responsibilities_json}`.toLowerCase().includes(q)
+      const rBlob = `${r.description} ${r.responsibilities_json}`.toLowerCase();
+      return searchTerms.some(
+        (term) =>
+          rSkills.some((rs) => rs.toLowerCase() === term || rs.toLowerCase().includes(term)) ||
+          rBlob.includes(term)
       );
     });
 
@@ -1594,7 +1931,7 @@ function runPostSeedMigrations(): void {
         ? 'Professional Experience'
         : matchedProjs.length > 0
         ? 'Used in Projects'
-        : 'Learning / Familiar';
+        : 'Verified Stack';
 
     const desc =
       customMeta?.description ||
