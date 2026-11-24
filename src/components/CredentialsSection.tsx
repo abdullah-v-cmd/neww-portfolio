@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CertificateItem, EducationEntry } from '../types/portfolio';
-import { WaterFlowText } from './MotionReveal';
+import {
+  WaterCardReveal,
+  WaterFlowText,
+  useWaterScrollWave,
+} from './MotionReveal';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -158,6 +162,10 @@ function PdfCanvasViewer({ fileUrl, title }: { fileUrl: string; title: string })
 }
 
 export function CredentialsSection({ education, certificates }: CredentialsSectionProps) {
+  const eduGridRef = useRef<HTMLDivElement | null>(null);
+  const certGridRef = useRef<HTMLDivElement | null>(null);
+  const eduWave = useWaterScrollWave(eduGridRef);
+  const certWave = useWaterScrollWave(certGridRef);
   const [previewCert, setPreviewCert] = useState<CertificateItem | null>(null);
 
   useEffect(() => {
@@ -186,30 +194,34 @@ export function CredentialsSection({ education, certificates }: CredentialsSecti
             />
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {education.map((edu) => (
-              <div
+          <div ref={eduGridRef} className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {education.map((edu, idx) => (
+              <WaterCardReveal
                 key={edu.id}
-                className="relative overflow-hidden rounded-xl border border-zinc-800/90 bg-[#0D0F14] p-6"
+                index={idx}
+                sharedProgress={eduWave}
+                className="flex"
               >
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#e50914] via-amber-400/70 to-transparent" />
-                <div className="flex items-center gap-2 text-xs font-medium text-sky-400">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>{edu.institution}</span>
+                <div className="relative w-full overflow-hidden rounded-xl border border-zinc-800/90 bg-[#0D0F14] p-6">
+                  <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#e50914] via-amber-400/70 to-transparent" />
+                  <div className="flex items-center gap-2 text-xs font-medium text-sky-400">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>{edu.institution}</span>
+                  </div>
+                  <h3 className="mt-2 font-display text-2xl font-bold tracking-wide text-white uppercase">
+                    {edu.degree}{edu.field ? ` — ${edu.field}` : ''}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {edu.student_name}
+                    {(edu.start_date || edu.end_date)
+                      ? ` · ${edu.start_date}${edu.end_date ? ` – ${edu.end_date}` : ''}`
+                      : ''}
+                  </p>
+                  {edu.details ? (
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300">{edu.details}</p>
+                  ) : null}
                 </div>
-                <h3 className="mt-2 font-display text-2xl font-bold tracking-wide text-white uppercase">
-                  {edu.degree}{edu.field ? ` — ${edu.field}` : ''}
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  {edu.student_name}
-                  {(edu.start_date || edu.end_date)
-                    ? ` · ${edu.start_date}${edu.end_date ? ` – ${edu.end_date}` : ''}`
-                    : ''}
-                </p>
-                {edu.details ? (
-                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{edu.details}</p>
-                ) : null}
-              </div>
+              </WaterCardReveal>
             ))}
           </div>
         </div>
@@ -233,12 +245,17 @@ export function CredentialsSection({ education, certificates }: CredentialsSecti
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div ref={certGridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {certificates.map((cert, idx) => (
-              <article
+              <WaterCardReveal
                 key={cert.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-zinc-800/90 bg-[#0D0F14] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500"
+                index={idx % 3}
+                sharedProgress={certWave}
+                className="flex"
               >
+                <article
+                  className="group relative flex w-full flex-col justify-between overflow-hidden rounded-xl border border-zinc-800/90 bg-[#0D0F14] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500"
+                >
                 <div
                   className={`h-[3px] w-full ${
                     cert.is_featured === 1
@@ -321,7 +338,8 @@ export function CredentialsSection({ education, certificates }: CredentialsSecti
                     ) : null}
                   </div>
                 </div>
-              </article>
+                </article>
+              </WaterCardReveal>
             ))}
           </div>
         </div>

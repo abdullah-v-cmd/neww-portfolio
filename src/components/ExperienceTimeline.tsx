@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Building2, MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { CompanyExperience, ProjectItem } from '../types/portfolio';
-import { WaterFlowText } from './MotionReveal';
+import {
+  WaterCardReveal,
+  WaterFlowText,
+  useWaterScrollWave,
+} from './MotionReveal';
 
 interface ExperienceTimelineProps {
   companies: CompanyExperience[];
@@ -14,6 +18,8 @@ export function ExperienceTimeline({
   projects,
   onSelectProject,
 }: ExperienceTimelineProps) {
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const tabsWave = useWaterScrollWave(tabsRef);
   const [activeCompanyId, setActiveCompanyId] = useState<number>(companies[0]?.id || 0);
   const selectedCompany = companies.find((c) => c.id === activeCompanyId) || companies[0];
 
@@ -38,35 +44,42 @@ export function ExperienceTimeline({
       </div>
 
       {/* Video 1 Horizontal Season Tabs */}
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div ref={tabsRef} className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {companies.map((company, idx) => {
           const isSelected = selectedCompany?.id === company.id;
           return (
-            <button
+            <WaterCardReveal
               key={company.id}
-              type="button"
-              onClick={() => setActiveCompanyId(company.id)}
-              className={`rounded-lg border p-4 text-left transition-all ${
-                isSelected
-                  ? 'border-[#e50914] bg-[#141720]'
-                  : 'border-zinc-800/90 bg-[#0D0F14] hover:border-zinc-700'
-              }`}
+              index={idx}
+              sharedProgress={tabsWave}
+              className="flex"
             >
-              <p className="font-mono text-[11px] font-semibold text-[#e50914] uppercase">
-                Season 0{idx + 1} · {company.arrangement}
-              </p>
-              <h3 className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
-                {company.name}
-              </h3>
-              <p className="mt-0.5 font-mono text-xs text-slate-400">{company.overall_dates}</p>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveCompanyId(company.id)}
+                className={`w-full rounded-lg border p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-[#e50914] bg-[#141720]'
+                    : 'border-zinc-800/90 bg-[#0D0F14] hover:border-zinc-700'
+                }`}
+              >
+                <p className="font-mono text-[11px] font-semibold text-[#e50914] uppercase">
+                  Season 0{idx + 1} · {company.arrangement}
+                </p>
+                <h3 className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
+                  {company.name}
+                </h3>
+                <p className="mt-0.5 font-mono text-xs text-slate-400">{company.overall_dates}</p>
+              </button>
+            </WaterCardReveal>
           );
         })}
       </div>
 
       {/* Active Season Detail */}
       {selectedCompany ? (
-        <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 sm:p-8">
+        <WaterCardReveal index={1}>
+          <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-800/80 pb-6">
             <div>
               <div className="flex items-center gap-2 text-xs font-medium text-[#e50914]">
@@ -168,7 +181,8 @@ export function ExperienceTimeline({
               </div>
             </div>
           ) : null}
-        </div>
+          </div>
+        </WaterCardReveal>
       ) : null}
     </section>
   );

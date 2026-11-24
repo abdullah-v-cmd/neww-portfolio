@@ -12,7 +12,11 @@ import {
   Film,
 } from 'lucide-react';
 import { ProfileMode, ProjectItem } from '../types/portfolio';
-import { WaterFlowText } from './MotionReveal';
+import {
+  WaterCardReveal,
+  WaterFlowText,
+  useWaterScrollWave,
+} from './MotionReveal';
 
 interface ProjectCarouselProps {
   projects: ProjectItem[];
@@ -315,7 +319,9 @@ function CollectionRow({
   onSelectProject,
   onQuickView,
 }: CollectionRowProps) {
+  const rowRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const rowWave = useWaterScrollWave(trackRef);
 
   if (items.length === 0) return null;
 
@@ -326,12 +332,18 @@ function CollectionRow({
   };
 
   return (
-    <div className="space-y-4">
+    <div ref={rowRef} className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h3 className="font-display text-2xl font-bold tracking-wide text-white uppercase">
-            {title}
-          </h3>
+          <WaterFlowText
+            as="h3"
+            text={title}
+            accentVariant="cyan-blue"
+            waterIntensity={0.75}
+            blurIntensity={6}
+            showCaustics={false}
+            className="font-display text-2xl font-bold tracking-wide uppercase"
+          />
           <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>
         </div>
         <div className="hidden items-center gap-2 sm:flex">
@@ -365,14 +377,21 @@ function CollectionRow({
         }}
         className="no-scrollbar flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3 pt-1 focus-visible:outline-2 focus-visible:outline-blue-500"
       >
-        {items.map((project) => (
-          <ProjectDiscoveryCard
+        {items.map((project, idx) => (
+          <WaterCardReveal
             key={project.id}
-            project={project}
-            videoAutoplayPreview={videoAutoplayPreview}
-            onSelectProject={onSelectProject}
-            onQuickView={onQuickView}
-          />
+            index={Math.min(idx, 4)}
+            sharedProgress={rowWave}
+            driftX={36}
+            className="flex shrink-0 snap-start"
+          >
+            <ProjectDiscoveryCard
+              project={project}
+              videoAutoplayPreview={videoAutoplayPreview}
+              onSelectProject={onSelectProject}
+              onQuickView={onQuickView}
+            />
+          </WaterCardReveal>
         ))}
       </div>
     </div>
@@ -385,6 +404,8 @@ export function ProjectCarousel({
   videoAutoplayPreview = true,
   onSelectProject,
 }: ProjectCarouselProps) {
+  const spotlightGridRef = useRef<HTMLDivElement | null>(null);
+  const spotlightWave = useWaterScrollWave(spotlightGridRef);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [quickViewProject, setQuickViewProject] = useState<ProjectItem | null>(null);
 
@@ -479,50 +500,56 @@ export function ProjectCarousel({
             />
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div ref={spotlightGridRef} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {spotlights.map((spot, idx) => (
-              <button
+              <WaterCardReveal
                 key={spot.id}
-                type="button"
-                onClick={() => onSelectProject(spot)}
-                className={`group relative flex min-h-[280px] flex-col justify-end overflow-hidden rounded-xl border p-6 text-left transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${
-                  idx === 0
-                    ? 'border-blue-500/35 bg-gradient-to-br from-[#0e1930] via-[#0b0e18] to-[#08090C] hover:border-blue-400/70'
-                    : 'border-purple-500/35 bg-gradient-to-br from-[#1b102d] via-[#0e0b16] to-[#08090C] hover:border-purple-400/70'
-                }`}
+                index={idx}
+                sharedProgress={spotlightWave}
+                className="flex"
               >
-                {spot.cover_image ? (
-                  <img
-                    src={spot.cover_image}
-                    alt={spot.title}
-                    referrerPolicy="no-referrer"
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : null}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#08090C] via-[#08090C]/70 to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => onSelectProject(spot)}
+                  className={`group relative flex min-h-[280px] w-full flex-col justify-end overflow-hidden rounded-xl border p-6 text-left transition-transform duration-300 hover:-translate-y-1 sm:p-8 ${
+                    idx === 0
+                      ? 'border-blue-500/35 bg-gradient-to-br from-[#0e1930] via-[#0b0e18] to-[#08090C] hover:border-blue-400/70'
+                      : 'border-purple-500/35 bg-gradient-to-br from-[#1b102d] via-[#0e0b16] to-[#08090C] hover:border-purple-400/70'
+                  }`}
+                >
+                  {spot.cover_image ? (
+                    <img
+                      src={spot.cover_image}
+                      alt={spot.title}
+                      referrerPolicy="no-referrer"
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : null}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#08090C] via-[#08090C]/70 to-transparent" />
 
-                <div className="relative z-10 space-y-2.5">
-                  <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-blue-400 uppercase">
-                    Verified · {spot.category} · {spot.status || 'Completed'}
-                    {spot.live_url && spot.live_demo_verified ? ' · Live Demo' : ''}
-                  </p>
-                  <h3 className="font-display text-3xl font-bold tracking-wide text-white uppercase sm:text-4xl">
-                    {spot.title.split('—')[0].trim()}
-                  </h3>
-                  <p className="max-w-lg text-sm leading-relaxed text-slate-300">
-                    {spot.tagline}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4 pt-2 text-xs font-semibold text-white">
-                    <span className="inline-flex items-center gap-1.5 text-blue-300 group-hover:text-white">
-                      <Play className="h-3.5 w-3.5 fill-current" />
-                      <span>Open Project</span>
-                    </span>
-                    <span className="font-mono text-slate-400">
-                      {spot.technologies.slice(0, 4).join(' · ')}
-                    </span>
+                  <div className="relative z-10 space-y-2.5">
+                    <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-blue-400 uppercase">
+                      Verified · {spot.category} · {spot.status || 'Completed'}
+                      {spot.live_url && spot.live_demo_verified ? ' · Live Demo' : ''}
+                    </p>
+                    <h3 className="font-display text-3xl font-bold tracking-wide text-white uppercase sm:text-4xl">
+                      {spot.title.split('—')[0].trim()}
+                    </h3>
+                    <p className="max-w-lg text-sm leading-relaxed text-slate-300">
+                      {spot.tagline}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4 pt-2 text-xs font-semibold text-white">
+                      <span className="inline-flex items-center gap-1.5 text-blue-300 group-hover:text-white">
+                        <Play className="h-3.5 w-3.5 fill-current" />
+                        <span>Open Project</span>
+                      </span>
+                      <span className="font-mono text-slate-400">
+                        {spot.technologies.slice(0, 4).join(' · ')}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              </WaterCardReveal>
             ))}
           </div>
         </div>
@@ -542,26 +569,28 @@ export function ProjectCarousel({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-800 bg-[#0D0F14] p-1">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveFilter(cat)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                activeFilter === cat ? 'bg-[#e50914] text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        <WaterCardReveal sheen={false} risePx={16}>
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-800 bg-[#0D0F14] p-1">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveFilter(cat)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                  activeFilter === cat ? 'bg-[#e50914] text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </WaterCardReveal>
       </div>
 
       <div className="space-y-14">
         {orderedCollections.map((col) => (
           <CollectionRow
-            key={col.key}
+            key={`${activeFilter}-${col.key}`}
             title={col.title}
             subtitle={col.subtitle}
             items={col.items}

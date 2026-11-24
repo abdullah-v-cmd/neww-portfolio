@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Mail, Github, Linkedin, Send, Paperclip, MessageSquare, Search, CheckCircle2, FileCheck2 } from 'lucide-react';
 import { ProfileSettings } from '../types/portfolio';
-import { WaterFlowText } from './MotionReveal';
+import { WaterCardReveal, WaterFlowText } from './MotionReveal';
 import { parseJsonSafe } from '../utils/safeFetch';
 
 interface ContactSectionProps {
@@ -140,7 +140,8 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Contact Channels + Thread Lookup */}
           <div className="space-y-6 lg:col-span-5">
-            <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 space-y-4">
+            <WaterCardReveal index={0} settleEarly>
+              <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 space-y-4">
               <h3 className="font-display text-lg font-semibold text-white">Direct Channels</h3>
               <div className="space-y-3 text-sm">
                 <a
@@ -190,44 +191,48 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
                   <span>Ask Abdullah AI First</span>
                 </button>
               </div>
-            </div>
+              </div>
+            </WaterCardReveal>
 
             {/* Thread Lookup */}
-            <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 space-y-4">
-              <h3 className="font-display text-base font-semibold text-white">
-                Check Two-Way Conversation
-              </h3>
-              <p className="text-xs text-slate-400">
-                Enter your private thread reference token to view Abdullah&apos;s replies and respond directly.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (lookupToken.trim()) loadThread(lookupToken);
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  type="text"
-                  value={lookupToken}
-                  onChange={(e) => setLookupToken(e.target.value)}
-                  placeholder="Paste private thread token..."
-                  className="h-10 flex-1 rounded-lg border border-zinc-800 bg-[#07080B] px-3 font-mono text-xs text-white placeholder:text-slate-500 focus:border-red-500 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-zinc-700 px-3.5 text-xs font-medium text-white hover:border-zinc-500 whitespace-nowrap shrink-0"
+            <WaterCardReveal index={1} settleEarly>
+              <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 space-y-4">
+                <h3 className="font-display text-base font-semibold text-white">
+                  Check Two-Way Conversation
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Enter your private thread reference token to view Abdullah&apos;s replies and respond directly.
+                </p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (lookupToken.trim()) loadThread(lookupToken);
+                  }}
+                  className="flex gap-2"
                 >
-                  <Search className="h-3.5 w-3.5" />
-                  <span>Open</span>
-                </button>
-              </form>
-              {threadError ? <p className="text-xs text-red-400">{threadError}</p> : null}
-            </div>
+                  <input
+                    type="text"
+                    value={lookupToken}
+                    onChange={(e) => setLookupToken(e.target.value)}
+                    placeholder="Paste private thread token..."
+                    className="h-10 flex-1 rounded-lg border border-zinc-800 bg-[#07080B] px-3 font-mono text-xs text-white placeholder:text-slate-500 focus:border-red-500 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-zinc-700 px-3.5 text-xs font-medium text-white hover:border-zinc-500 whitespace-nowrap shrink-0"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    <span>Open</span>
+                  </button>
+                </form>
+                {threadError ? <p className="text-xs text-red-400">{threadError}</p> : null}
+              </div>
+            </WaterCardReveal>
           </div>
 
           {/* Form OR Active Two-Way Thread */}
-          <div className="rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 sm:p-8 lg:col-span-7">
+          <WaterCardReveal index={1} settleEarly className="lg:col-span-7">
+            <div className="h-full rounded-xl border border-zinc-800 bg-[#0D0F14] p-6 sm:p-8">
             {activeThread ? (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-4">
@@ -404,7 +409,8 @@ export function ContactSection({ profile, onOpenAI, onRequestCv }: ContactSectio
                 ) : null}
               </form>
             )}
-          </div>
+            </div>
+          </WaterCardReveal>
         </div>
       </div>
     </section>

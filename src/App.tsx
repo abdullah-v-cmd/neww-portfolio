@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Lenis from 'lenis';
 import { motion } from 'motion/react';
 import {
@@ -20,7 +20,11 @@ import { HeroMontageBackdrop } from './components/HeroMontageBackdrop';
 import { VideoBackgroundLayer } from './components/VideoBackgroundLayer';
 import { CinematicIntro } from './components/CinematicIntro';
 import { MonogramLogo } from './components/MonogramLogo';
-import { MotionReveal, WaterFlowText } from './components/MotionReveal';
+import {
+  WaterCardReveal,
+  WaterFlowText,
+  useWaterScrollWave,
+} from './components/MotionReveal';
 import { BackToTopButton } from './components/BackToTopButton';
 import { FullStorySection } from './components/FullStorySection';
 import { ProjectCarousel } from './components/ProjectCarousel';
@@ -74,6 +78,65 @@ const PROFILE_EXPERIENCE_COPY: Record<
     summaryNote: 'Highlighting production APIs, full-stack TypeScript/PostgreSQL builds, and verified live deployments.',
   },
 };
+
+function ContinueSeriesRail({
+  minimalMotion,
+  onSelectEpisode,
+}: {
+  minimalMotion: boolean;
+  onSelectEpisode: (id: string) => void;
+}) {
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const waveProgress = useWaterScrollWave(gridRef);
+
+  return (
+    <section id="continue-series" className="border-b border-zinc-900 bg-[#07080D]">
+      <div className="mx-auto max-w-[1360px] px-6 py-10 lg:px-10">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <WaterFlowText
+            as="h2"
+            text="Continue Exploring"
+            accentVariant="cyan-blue"
+            waterIntensity={0.85}
+            blurIntensity={6}
+            reducedMotion={minimalMotion}
+            className="font-display text-2xl font-bold tracking-wide uppercase"
+          />
+          <span className="text-xs text-slate-400">
+            Jump directly to any episode in the series
+          </span>
+        </div>
+
+        <div ref={gridRef} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {CONTINUE_EPISODES.map((ep, idx) => (
+            <WaterCardReveal
+              key={ep.id}
+              index={idx}
+              sharedProgress={waveProgress}
+              disabled={minimalMotion}
+              className="h-full"
+            >
+              <button
+                type="button"
+                onClick={() => onSelectEpisode(ep.id)}
+                className="group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-lg border border-zinc-800/90 bg-[#0D0F14] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500/60"
+              >
+                <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-zinc-800 transition-colors group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500" />
+                <p className="font-mono text-[11px] font-semibold text-blue-400 uppercase">
+                  {ep.episode}
+                </p>
+                <p className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
+                  {ep.title}
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-400">{ep.subtitle}</p>
+              </button>
+            </WaterCardReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function App() {
   const [routePath, setRoutePath] = useState<string>(() => window.location.pathname || '/');
@@ -348,91 +411,82 @@ export default function App() {
     switch (key) {
       case 'story':
         return (
-          <MotionReveal key="story" disabled={minimalMotion}>
-            <FullStorySection
-              profile={profile}
-              experience={experience}
-              education={education}
-              projects={projects}
-              certificates={certificates}
-              onDownloadResume={handleResumeDownload}
-              onRequestCv={() => setCvModalOpen(true)}
-              onOpenAI={() => setAiChatOpen(true)}
-              onSelectProject={handleOpenProject}
-            />
-          </MotionReveal>
+          <FullStorySection
+            key="story"
+            profile={profile}
+            experience={experience}
+            education={education}
+            projects={projects}
+            certificates={certificates}
+            onDownloadResume={handleResumeDownload}
+            onRequestCv={() => setCvModalOpen(true)}
+            onOpenAI={() => setAiChatOpen(true)}
+            onSelectProject={handleOpenProject}
+          />
         );
       case 'projects':
         return (
-          <MotionReveal key="projects" disabled={minimalMotion}>
-            <ProjectCarousel
-              projects={projects}
-              profileMode={profileMode}
-              videoAutoplayPreview={theme?.video_autoplay_preview !== 0}
-              onSelectProject={handleOpenProject}
-            />
-          </MotionReveal>
+          <ProjectCarousel
+            key="projects"
+            projects={projects}
+            profileMode={profileMode}
+            videoAutoplayPreview={theme?.video_autoplay_preview !== 0}
+            onSelectProject={handleOpenProject}
+          />
         );
       case 'skills':
         return (
-          <MotionReveal key="skills" disabled={minimalMotion}>
-            <SkillsUniverse
-              categories={skillUniverse}
-              projects={projects}
-              experience={experience}
-              onSelectProject={handleOpenProject}
-            />
-          </MotionReveal>
+          <SkillsUniverse
+            key="skills"
+            categories={skillUniverse}
+            projects={projects}
+            experience={experience}
+            onSelectProject={handleOpenProject}
+          />
         );
       case 'experience':
         return (
-          <MotionReveal key="experience" disabled={minimalMotion}>
-            <ExperienceTimeline
-              companies={experience}
-              projects={projects}
-              onSelectProject={handleOpenProject}
-            />
-          </MotionReveal>
+          <ExperienceTimeline
+            key="experience"
+            companies={experience}
+            projects={projects}
+            onSelectProject={handleOpenProject}
+          />
         );
       case 'credentials':
         return (
-          <MotionReveal key="credentials" disabled={minimalMotion}>
-            <CredentialsSection
-              education={education}
-              certificates={certificates}
-            />
-          </MotionReveal>
+          <CredentialsSection
+            key="credentials"
+            education={education}
+            certificates={certificates}
+          />
         );
       case 'about':
-        return (
-          <MotionReveal key="about" disabled={minimalMotion}>
-            <AboutSection profile={profile} />
-          </MotionReveal>
-        );
+        return <AboutSection key="about" profile={profile} />;
       case 'contact':
         return (
-          <MotionReveal key="contact" disabled={minimalMotion}>
-            <div>
-              <section className="border-t border-zinc-900 bg-[#060608]">
-                <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
-                      The Next Episode · To Be Continued
-                    </p>
-                    <WaterFlowText
-                      as="h2"
-                      text="Let's Build Something Extraordinary"
-                      accentVariant="cinema"
-                      waterIntensity={1.1}
-                      blurIntensity={8}
-                      reducedMotion={minimalMotion}
-                      className="mt-2 text-center font-display text-4xl font-bold tracking-wide uppercase sm:text-6xl lg:text-7xl"
-                    />
-                    <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
-                      Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
-                    </p>
-                  </div>
+          <div key="contact">
+            <section className="border-t border-zinc-900 bg-[#060608]">
+              <div className="mx-auto max-w-[1360px] px-6 py-20 text-center lg:px-10">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold tracking-[0.28em] text-[#e50914] uppercase">
+                    The Next Episode · To Be Continued
+                  </p>
+                  <WaterFlowText
+                    as="h2"
+                    text="Let's Build Something Extraordinary"
+                    accentVariant="cinema"
+                    waterIntensity={1.1}
+                    blurIntensity={8}
+                    reducedMotion={minimalMotion}
+                    className="mt-2 text-center font-display text-4xl font-bold tracking-wide uppercase sm:text-6xl lg:text-7xl"
+                  />
+                  <p className="mx-auto mt-4 max-w-xl text-base text-slate-300">
+                    Have an idea? Let&apos;s build it. Ready to ship reliable AI engineering, RAG systems, and computer vision products.
+                  </p>
+                </div>
 
+                <WaterCardReveal disabled={minimalMotion} sheen={false} risePx={18}>
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                     <button
                       type="button"
@@ -482,18 +536,18 @@ export default function App() {
                       <span>Replay Intro</span>
                     </button>
                   </div>
-                </div>
-              </section>
-
-              <div id="contact-form">
-                <ContactSection
-                  profile={profile}
-                  onOpenAI={() => setAiChatOpen(true)}
-                  onRequestCv={() => setCvModalOpen(true)}
-                />
+                </WaterCardReveal>
               </div>
+            </section>
+
+            <div id="contact-form">
+              <ContactSection
+                profile={profile}
+                onOpenAI={() => setAiChatOpen(true)}
+                onRequestCv={() => setCvModalOpen(true)}
+              />
             </div>
-          </MotionReveal>
+          </div>
         );
       default:
         return null;
@@ -753,9 +807,9 @@ export default function App() {
 
               {/* Right Column: Interactive 3D Spatial Portrait */}
               <motion.div
-                initial={minimalMotion ? false : { opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+                initial={minimalMotion ? false : { opacity: 0, y: 18, scale: 0.96, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 0.65, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 className="lg:col-span-5"
               >
                 <HeroPortrait3D
@@ -783,44 +837,10 @@ export default function App() {
         </section>
 
         {/* Continue Exploring 5-Episode Series Rail */}
-        <section id="continue-series" className="border-b border-zinc-900 bg-[#07080D]">
-          <div className="mx-auto max-w-[1360px] px-6 py-10 lg:px-10">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <WaterFlowText
-                as="h2"
-                text="Continue Exploring"
-                accentVariant="cyan-blue"
-                waterIntensity={0.85}
-                blurIntensity={6}
-                reducedMotion={minimalMotion}
-                className="font-display text-2xl font-bold tracking-wide uppercase"
-              />
-              <span className="text-xs text-slate-400">
-                Jump directly to any episode in the series
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {CONTINUE_EPISODES.map((ep) => (
-                <button
-                  key={ep.id}
-                  type="button"
-                  onClick={() => scrollToSection(ep.id)}
-                  className="group relative overflow-hidden rounded-lg border border-zinc-800/90 bg-[#0D0F14] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500/60"
-                >
-                  <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-zinc-800 transition-colors group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500" />
-                  <p className="font-mono text-[11px] font-semibold text-blue-400 uppercase">
-                    {ep.episode}
-                  </p>
-                  <p className="mt-1 font-display text-xl font-bold tracking-wide text-white uppercase">
-                    {ep.title}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">{ep.subtitle}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ContinueSeriesRail
+          minimalMotion={minimalMotion}
+          onSelectEpisode={scrollToSection}
+        />
 
         {defaultOrder.map((sec) => renderSection(sec))}
       </main>

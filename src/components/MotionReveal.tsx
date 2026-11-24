@@ -164,3 +164,5 @@ export function WaterText({
 
 export { WaterFlowText } from './WaterFlowText';
 export type { WaterFlowTextProps, WaterFlowAccent } from './WaterFlowText';
+export { WaterCardReveal, useWaterScrollWave } from './WaterCardReveal';
+export type { WaterCardRevealProps } from './WaterCardReveal';
